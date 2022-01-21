@@ -33,9 +33,79 @@ def spiral_recursive(x0, points_dim, points_list=[]):
 
     return points_list
 
+def distance_criterion(points_dim, points_list):
+    """
+    Evaluates the distance criterion for a set of points
+
+    Args:
+        points_dim (int): number of dimensions of the problem
+        points_list (list): initial point in the list of points, to be left
+        at [0 for i in range(num_dim)]
+        
+    
+    Returns:
+        distance_eval (float): Floating value of the sum of the reciprocal 
+        distance between a pair of points. This is the value that has to be 
+        minimised in the optimisation problem.
+    """
+    d = 0.0 # Predefine a distance
+    distance_eval = 0.0 # Predefine the distance criterion
+    num_dim = points_list.shape[1]
+    for i in range(points_dim):
+        for j in range(i+1,points_dim):
+            for k in range(num_dim):
+                d += (points_list[j,k]-points_list[i,k])**2
+                
+            distance_eval += 1/d**0.5
+            d = 0
+        
+    return distance_eval
+
+def get_vectors(points_dim, points_list):
+    """
+    Evaluates a normalized vector to follow in optimisation
+
+    Args:
+        points_dim (int): number of dimensions of the problem
+        points_list (list): initial point in the list of points, to be left
+        at [0 for i in range(num_dim)]
+        
+    
+    Returns:
+        vectors (np.narray): Array with normalised components.
+    """
+    num_dim = points_list.shape[1]
+    vectors = np.zeros((points_dim-1,num_dim))
+    for i in range(points_dim-1):
+        for k in range(num_dim):
+            vectors[i,k] = (points_list[i+1,k]-points_list[i,k])            
+    return vectors
+
+def update_points(num_dim,points_dim,alpha):
+    """
+    Updates the points from the starting recursive DoE
+
+    Args:
+        num_dim (int): Number of dimensions 
+        points_dim (int): Number of points
+        alpha (nparray): array of the sliders for each of the lines
+
+    Returns:
+        P (nparray): Updated points
+    """
+    
+    # Get initial points, should be able to pass them (Could try global)
+    P0 = spiral_recursive([0,0], points_dim, np.array([[0, 0]]))
+    P  = P0
+    vectors = get_vectors(points_dim, P0)
+    for i in range(points_dim-1):
+        for k in range(num_dim):
+            P[i,k] = P0[i,k]+alpha[i]*vectors[i,k]
+
+    return P
 
 if  (__name__ == '__main__'):
-    N = 50 # 50 points 
+    N = 4 # 50 points 
     P = spiral_recursive([0, 0], N, np.array([[0, 0]])) # 2D DoE
     #P = spiral_recursive([0, 0, 0, 0], N, np.array([[0, 0, 0, 0]])) # 4D DoE etc.
 
@@ -62,3 +132,5 @@ if  (__name__ == '__main__'):
 
     plt.show()
     
+    criteria = distance_criterion(4, P)
+    vectors  = get_vectors(N, P)
