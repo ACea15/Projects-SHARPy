@@ -39,7 +39,7 @@ def func(alpha):
 if  (__name__ == '__main__'):       
     # Code copied from original DoE.py
     num_dim = 2
-    N = 50 # 50 points 
+    N = 20 # 50 points 
     P = DoE.spiral_recursive([0, 0], N, np.array([[0, 0]])) # 2D DoE
     #P = spiral_recursive([0, 0, 0, 0], N, np.array([[0, 0, 0, 0]])) # 4D DoE etc.
     
@@ -84,6 +84,18 @@ if  (__name__ == '__main__'):
     # Compare the criteria evaluation
     print('Before Optimisation Crit = ', initial_criteria)
     print('After Optimisation Crit. = ', final_criteria) 
+    # print the criteria for all N
+    N = np.array((4,10,20,50))
+    for i in range(len(N)):
+        # Get recursive criterion
+        P = DoE.spiral_recursive([0, 0], N[i], np.array([[0, 0]])) 
+        recursive_crit = DoE.distance_criterion(N[i], P)
+        # Get initial criterion
+        alpha = np.zeros((N[i]-1,))*0.5
+        P1 = DoE.update_points(num_dim, N[i], alpha)
+        initial_crit = DoE.distance_criterion(N[i], P1)
+        print('N = ',N[i],' recursive = ', recursive_crit,' initial = ',initial_crit)
+        
     
     plt.scatter(P1[:,0], P1[:,1], marker='.', c='b', s=100) 
     plt.show()

@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 
 def spiral_recursive(x0, points_dim, points_list=[]):
     """
@@ -105,8 +106,8 @@ def update_points(num_dim,points_dim,alpha):
     return P
 
 if  (__name__ == '__main__'):
-    N = 4 # 50 points 
-    P = spiral_recursive([0, 0], N, np.array([[0, 0]])) # 2D DoE
+    N = 20 # 50 points 
+    P = spiral_recursive([0, 0, 0], N, np.array([[0, 0, 0]])) # 2D DoE
     #P = spiral_recursive([0, 0, 0, 0], N, np.array([[0, 0, 0, 0]])) # 4D DoE etc.
 
     fig = plt.figure()
@@ -134,3 +135,17 @@ if  (__name__ == '__main__'):
     
     criteria = distance_criterion(4, P)
     vectors  = get_vectors(N, P)
+    
+    # Only plot in 3D if there are 3 dimensions
+    if P.shape[1]==3:
+        fig2 = plt.figure()
+        ax = plt.axes(projection='3d')
+        
+        ax.scatter3D(P[:,0], P[:,1], P[:,2], marker='.', c='b', s=100)
+        
+        ax.plot3D(P[:,0], P[:,1], P[:,2],'r--', linewidth=0.5)
+        
+        ax.show()
+    
+        
+        
