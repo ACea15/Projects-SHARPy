@@ -4,7 +4,7 @@ from mpl_toolkits import mplot3d
 
 def spiral_recursive(x0, points_dim, points_list=[]):
     """
-    Creates an spiral Latin HyperCube designs of experiments 
+    Creates a spiral Latin HyperCube designs of experiments 
     by recursively calling itself
 
     Args:
@@ -31,17 +31,54 @@ def spiral_recursive(x0, points_dim, points_list=[]):
     else:
         points_list = np.concatenate((points_list, points))
         points_list = spiral_recursive(points[-1], points_dim-2*num_dim, points_list)
-
+    
     return points_list
 
-def distance_criterion(points_dim, points_list):
+def structured_hypercube(points_dim, num_dim):
     """
-    Evaluates the distance criterion for a set of points
+    Creates a structured uniform distribution of points for DoE. Currently only
+    has a 1 point seed option. Currently only works for 2D! 
+
+    Args:
+        points_dim (int): total number of points in the DoE. NOTE: THIS NUMBER
+        MUST BE SQUARE {4,9,16,25,...} in 2D, CUBED in 3D etc...
+        num_dim (int): Number of dimensions
+
+    Returns:
+        points_list (np.ndarray): DoE of shape(points_dim, num_dimenstions)
+    """ 
+    # Check that the number of points are compatible with the number of dimensions
+    if (points_dim**(1/num_dim)).is_integer():
+        #create points list array
+        points_list = np.zeros((points_dim,num_dim))
+        # Get number of blocks per dimension
+        blocksPerDimension = points_dim**(1/num_dim) 
+        # Use a counter for each dimension
+        # Calculate the amount of which one shifts cells
+        cell_shift = points_dim/blocksPerDimension
+        point_counter = 0
+        for i in range(0,int(blocksPerDimension)):
+            for j in range(0,int(blocksPerDimension)):
+                points_list[point_counter,0] = i+j*cell_shift+0.0
+                points_list[point_counter,1] = j+i*cell_shift+0.0
+                point_counter += 1
+            
+        
+        return points_list
+    else:
+        print('Check the inputs for structured hypercube criteria')
+        
+    
+
+def distance_criterion(points_dim, points_list,p=1):
+    """
+    Evaluates the Morris-Mitchel distance criterion for a set of points
 
     Args:
         points_dim (int): number of dimensions of the problem
         points_list (list): initial point in the list of points, to be left
         at [0 for i in range(num_dim)]
+        p (int): Value to give more weight to larger distances (>0)
         
     
     Returns:
@@ -54,15 +91,17 @@ def distance_criterion(points_dim, points_list):
     num_dim = points_list.shape[1]
     for i in range(points_dim):
         for j in range(i+1,points_dim):
-            for k in range(num_dim):
-                d += (points_list[j,k]-points_list[i,k])**2
-                
-            distance_eval += 1/d**0.5
-            d = 0
+            d = np.linalg.norm(points_list[j,:]-points_list[i,:]) 
+            if d == 0.:
+                print('i',i,'j',j)
+                print(points_list[j,:],points_list[i,:])
+                break
+            distance_eval += d**(-p)
+    distance_eval = distance_eval**(1/p)
         
     return distance_eval
 
-def get_vectors(points_dim, points_list):
+def get_vectors(points_list):
     """
     Evaluates a normalized vector to follow in optimisation
 
@@ -75,7 +114,7 @@ def get_vectors(points_dim, points_list):
     Returns:
         vectors (np.narray): Array with normalised components.
     """
-    num_dim = points_list.shape[1]
+    points_dim, num_dim = points_list.shape
     vectors = np.zeros((points_dim-1,num_dim))
     for i in range(points_dim-1):
         for k in range(num_dim):
@@ -98,7 +137,7 @@ def update_points(num_dim,points_dim,alpha):
     # Get initial points, should be able to pass them (Could try global)
     P0 = spiral_recursive([0,0], points_dim, np.array([[0, 0]]))
     P  = P0
-    vectors = get_vectors(points_dim, P0)
+    vectors = get_vectors(P0)
     for i in range(points_dim-1):
         for k in range(num_dim):
             P[i,k] = P0[i,k]+alpha[i]*vectors[i,k]
@@ -107,7 +146,7 @@ def update_points(num_dim,points_dim,alpha):
 
 if  (__name__ == '__main__'):
     N = 20 # 50 points 
-    P = spiral_recursive([0, 0, 0], N, np.array([[0, 0, 0]])) # 2D DoE
+    P = spiral_recursive([0, 0, 0], N, np.array([[0, 0, 0]]))/N # 2D DoE
     #P = spiral_recursive([0, 0, 0, 0], N, np.array([[0, 0, 0, 0]])) # 4D DoE etc.
 
     fig = plt.figure()
@@ -116,8 +155,8 @@ if  (__name__ == '__main__'):
 
     plt.plot(P[:,0], P[:,1], 'r--', linewidth=0.5)
  
-    major_ticks = np.arange(0, N+1, 1)
-    minor_ticks = np.arange(0, N+1, N-1)
+    major_ticks = np.arange(0, 1.1, 0.1)
+    minor_ticks = np.arange(0, 1.2, 0.9)
 
     ax.set_xticks(major_ticks)
     ax.set_xticks(minor_ticks, minor=True)
@@ -134,7 +173,7 @@ if  (__name__ == '__main__'):
     plt.show()
     
     criteria = distance_criterion(4, P)
-    vectors  = get_vectors(N, P)
+    vectors  = get_vectors(P)
     
     # Only plot in 3D if there are 3 dimensions
     if P.shape[1]==3:
