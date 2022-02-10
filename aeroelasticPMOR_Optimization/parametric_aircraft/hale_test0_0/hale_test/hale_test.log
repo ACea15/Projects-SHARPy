@@ -1,0 +1,93 @@
+--------------------------------------------------------------------------------
+            ######  ##     ##    ###    ########  ########  ##    ##
+           ##    ## ##     ##   ## ##   ##     ## ##     ##  ##  ##
+           ##       ##     ##  ##   ##  ##     ## ##     ##   ####
+            ######  ######### ##     ## ########  ########     ##
+                 ## ##     ## ######### ##   ##   ##           ##
+           ##    ## ##     ## ##     ## ##    ##  ##           ##
+            ######  ##     ## ##     ## ##     ## ##           ##
+--------------------------------------------------------------------------------
+Aeroelastics Lab, Aeronautics Department.
+    Copyright (c), Imperial College London.
+    All rights reserved.
+    License available at https://github.com/imperialcollegelondon/sharpy
+Running SHARPy from /home/pablodfs/FYP/Projects-SHARPy/aeroelasticPMOR_Optimization/parametric_aircraft
+SHARPy being run is in /home/pablodfs/sharpy
+The branch being run is dev_rhea
+The version and commit hash are: v1.2.1-518-g33768da4-33768da4
+SHARPy output folder set
+	/home/pablodfs/FYP/Projects-SHARPy/aeroelasticPMOR_Optimization/parametric_aircraft/hale_test0_0/hale_test/
+Generating an instance of BeamLoader
+Variable orientation has no assigned value in the settings file.
+    will default to the value: [1.0, 0, 0, 0]
+Variable for_pos has no assigned value in the settings file.
+    will default to the value: [0.0, 0, 0]
+Generating an instance of AerogridLoader
+Variable unsteady has no assigned value in the settings file.
+    will default to the value: False
+Variable aligned_grid has no assigned value in the settings file.
+    will default to the value: True
+Variable freestream_dir has no assigned value in the settings file.
+    will default to the value: [1.0, 0.0, 0.0]
+Variable control_surface_deflection has no assigned value in the settings file.
+    will default to the value: []
+Variable control_surface_deflection_generator_settings has no assigned value in the settings file.
+    will default to the value: {}
+Variable dx1 has no assigned value in the settings file.
+    will default to the value: -1.0
+Variable ndx1 has no assigned value in the settings file.
+    will default to the value: 1
+Variable r has no assigned value in the settings file.
+    will default to the value: 1.0
+Variable dxmax has no assigned value in the settings file.
+    will default to the value: -1.0
+The aerodynamic grid contains 7 surfaces
+  Surface 0, M=16, N=10
+     Wake 0, M=80, N=10
+  Surface 1, M=16, N=10
+     Wake 1, M=80, N=10
+  Surface 2, M=16, N=2
+     Wake 2, M=80, N=2
+  Surface 3, M=16, N=2
+     Wake 3, M=80, N=2
+  Surface 4, M=16, N=9
+     Wake 4, M=80, N=9
+  Surface 5, M=16, N=10
+     Wake 5, M=80, N=10
+  Surface 6, M=16, N=10
+     Wake 6, M=80, N=10
+  In total: 848 bound panels
+  In total: 4240 wake panels
+  Total number of panels = 5088
+Generating an instance of AerogridPlot
+Variable include_forward_motion has no assigned value in the settings file.
+    will default to the value: False
+Variable include_unsteady_applied_forces has no assigned value in the settings file.
+    will default to the value: False
+Variable name_prefix has no assigned value in the settings file.
+    will default to the value: 
+Variable u_inf has no assigned value in the settings file.
+    will default to the value: 0.0
+Variable dt has no assigned value in the settings file.
+    will default to the value: 0.0
+Variable include_velocities has no assigned value in the settings file.
+    will default to the value: False
+Variable include_incidence_angle has no assigned value in the settings file.
+    will default to the value: False
+Variable num_cores has no assigned value in the settings file.
+    will default to the value: 1
+Variable vortex_radius has no assigned value in the settings file.
+    will default to the value: 1e-06
+...Finished
+Generating an instance of BeamPlot
+Variable include_FoR has no assigned value in the settings file.
+    will default to the value: False
+Variable include_applied_moments has no assigned value in the settings file.
+    will default to the value: True
+Variable name_prefix has no assigned value in the settings file.
+    will default to the value: 
+Variable output_rbm has no assigned value in the settings file.
+    will default to the value: True
+...Finished
+FINISHED - Elapsed time = 0.5105126 seconds
+FINISHED - CPU process time = 0.7379566 seconds

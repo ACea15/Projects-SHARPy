@@ -1,0 +1,25 @@
+[BeamLoader]
+unsteady = off
+[AerogridLoader]
+mstar = 80
+wake_shape_generator = StraightWake
+[[wake_shape_generator_input]]
+u_inf = 0.0
+u_inf_direction = 1.0, 0.0, 0.0
+dt = 0.1
+[AerogridPlot]
+include_rbm = off
+include_applied_forces = off
+minus_m_star = 0
+[BeamPlot]
+include_rbm = off
+include_applied_forces = off
+[SHARPy]
+case = hale_test
+route = /home/pablodfs/FYP/Projects-SHARPy/aeroelasticPMOR_Optimization/parametric_aircraft/hale_test0_0
+flow = BeamLoader, AerogridLoader, AerogridPlot, BeamPlot
+write_screen = on
+write_log = on
+log_folder = /home/pablodfs/FYP/Projects-SHARPy/aeroelasticPMOR_Optimization/parametric_aircraft/hale_test0_0
+log_file = hale_test.log
+save_settings = on

@@ -39,7 +39,7 @@ def func(alpha,*args):
 if  (__name__ == '__main__'):       
     # Code copied from original DoE.py
     num_dim = 2
-    N = 4 # 50 points 
+    N = 20# 50 points 
     P0 = DoE.spiral_recursive([0]*num_dim, N, np.array([[0]*num_dim])) # 2D DoE
     #P = spiral_recursive([0, 0, 0, 0], N, np.array([[0, 0, 0, 0]])) # 4D DoE etc.
     
