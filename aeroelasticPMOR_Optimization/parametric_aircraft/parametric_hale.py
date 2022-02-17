@@ -64,6 +64,13 @@ mass_fuselage[0,:,:] = np.diag([m_unit_fuselage,
 mass_fuselage[0, :3, 3:] = m_chi_cg
 mass_fuselage[0, 3:, :3] = -m_chi_cg
 
+# Lumped mass
+n_lumped_mass = 1                                           # Number of lumped masses
+lumped_mass_nodes = np.zeros((n_lumped_mass,), dtype=int)   # Maps lumped mass to nodes
+lumped_mass = np.zeros((n_lumped_mass,))                    # Array of lumped masses in kg
+lumped_mass[0] = 50
+lumped_mass_inertia = np.zeros((n_lumped_mass, 3, 3))       # 3x3 inertia to the previous masses
+lumped_mass_position = np.zeros((n_lumped_mass, 3))         # Relative position to the belonging node in B FoR
 
 g1c = dict()
 g1c['fuselage'] = {'workflow':['create_structure','create_aero0'],
@@ -74,7 +81,11 @@ g1c['fuselage'] = {'workflow':['create_structure','create_aero0'],
                                'dihedral':0.},
                   'fem': {'stiffness_db':stiffness,
                           'mass_db':mass_fuselage,
-                          'frame_of_reference_delta':[0,1.,0.]}
+                          'frame_of_reference_delta':[0,1.,0.],
+                          'lumped_mass': lumped_mass,
+                          'lumped_mass_nodes':lumped_mass_nodes,
+                          'lumped_mass_inertia':lumped_mass_inertia,
+                          'lumped_mass_position':lumped_mass_position}
 }
 
 g1c['wing_r'] = {'workflow':['create_structure', 'create_aero'],
