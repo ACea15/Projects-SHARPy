@@ -11,29 +11,58 @@ try:
 except:
     model_route = os.getcwd() + '/aeroelasticPMOR_Optimization/parametric_aircraft/'+'/first_test'
 # aeroelasticity parameters
-main_ea = 0.33
-main_cg = 0.43
+main_ea = 0.3               # Wing elastic axis from LE as %
+main_cg = 0.3               # Not sure about this input
 sigma = 1
 
 # other
 c_ref = 1.0
-
-ea, ga = 1e9, 1e9
-gj = 0.987581e6
-eiy = 9.77221e6
+# Wing Stiffness & mass
+ea, ga = 1e7, 1e5
+gj = 1e4
+eiy = 2e4
 eiz = 1e2 * eiy
 base_stiffness = np.diag([ea, ga, ga, sigma * gj, sigma * eiy, eiz])
 stiffness = np.zeros((1, 6, 6))
 stiffness[0] = base_stiffness
-m_unit = 35.71
-j_tors = 8.64
+m_unit = 0.75
+j_tors = 0.075
 pos_cg_b = np.array([0., c_ref * (main_cg - main_ea), 0.])
 m_chi_cg = algebra.skew(m_unit * pos_cg_b)
-mass = np.zeros((1, 6, 6))
-mass[0, :, :] = np.diag([m_unit, m_unit, m_unit,
-                         j_tors, .1 * j_tors, .9 * j_tors])
-mass[0, :3, 3:] = m_chi_cg
-mass[0, 3:, :3] = -m_chi_cg
+mass_wing = np.zeros((1, 6, 6))
+mass_wing[0, :, :] = np.diag([m_unit, m_unit, m_unit,
+                         j_tors, .5 * j_tors, .5 * j_tors])
+mass_wing[0, :3, 3:] = m_chi_cg
+mass_wing[0, 3:, :3] = -m_chi_cg
+
+# Tail Stiffness and mass of the horizontal tail
+ea_tail = 0.5
+sigma_tail = 100        #Use a multiplication factor
+m_unit_tail = 0.3
+j_tors_tail  = 0.08
+
+mass_tail = np.zeros((1,6,6))
+mass_tail[0,:,:] = np.diag([m_unit_tail,
+                     m_unit_tail,
+                     m_unit_tail,
+                     j_tors_tail,
+                     .5 * j_tors_tail,
+                     .5 * j_tors_tail])
+mass_tail[0, :3, 3:] = m_chi_cg
+mass_tail[0, 3:, :3] = -m_chi_cg
+# Fuselage Stiffness and mass
+sigma_fuselage = 10
+m_unit_fuselage = 0.2
+j_tors_fuselage = 0.08
+mass_fuselage = np.zeros((1, 6, 6))
+mass_fuselage[0,:,:] = np.diag([m_unit_fuselage,
+                     m_unit_fuselage,
+                     m_unit_fuselage,
+                     j_tors_fuselage,
+                     .5 * j_tors_fuselage,
+                     .5 * j_tors_fuselage])
+mass_fuselage[0, :3, 3:] = m_chi_cg
+mass_fuselage[0, 3:, :3] = -m_chi_cg
 
 
 g1c = dict()
@@ -44,7 +73,7 @@ g1c['fuselage'] = {'workflow':['create_structure','create_aero0'],
                                'sweep':0.,
                                'dihedral':0.},
                   'fem': {'stiffness_db':stiffness,
-                          'mass_db':mass,
+                          'mass_db':mass_fuselage,
                           'frame_of_reference_delta':[0,1.,0.]}
 }
 
@@ -55,7 +84,7 @@ g1c['wing_r'] = {'workflow':['create_structure', 'create_aero'],
                                'sweep':20.*np.pi/180,
                                'dihedral':0.},
                   'fem': {'stiffness_db':stiffness,
-                          'mass_db':mass,
+                          'mass_db':mass_wing,
                           'frame_of_reference_delta':[-1, 0., 0.]},
                   'aero': {'chord':[1.,1.],
                            'elastic_axis':0.33,
@@ -69,7 +98,7 @@ g1c['winglet_r']= {'workflow':['create_structure', 'create_aero'],
                                'sweep':20.*np.pi/180,
                                'dihedral':20.*np.pi/180},
                   'fem': {'stiffness_db':stiffness,
-                          'mass_db':mass,
+                          'mass_db':mass_wing,
                           'frame_of_reference_delta':[-1, 0., 0.]},
                   'aero': {'chord':[1.,1.],
                            'elastic_axis':0.33,
@@ -83,8 +112,8 @@ g1c['vertical_tail'] = {'workflow':['create_structure', 'create_aero'],
                                'direction':[0.,0.,1.],
                                'sweep':None,
                                'dihedral':None},
-                  'fem': {'stiffness_db':stiffness,
-                          'mass_db':mass,
+                  'fem': {'stiffness_db':stiffness*sigma_tail,  # input tail stiffness
+                          'mass_db':mass_tail,
                           'frame_of_reference_delta':[-1, 0., 0.]},
                   'aero': {'chord':[0.5,0.5],
                            'elastic_axis':0.5,
@@ -96,8 +125,8 @@ g1c['horizontal_tail_right'] = {'workflow':['create_structure', 'create_aero'],
                                'direction':[0.,1.,0.],
                                'sweep':0.,
                                'dihedral':0.},
-                  'fem': {'stiffness_db':stiffness,
-                          'mass_db':mass,
+                  'fem': {'stiffness_db':stiffness*sigma_tail,
+                          'mass_db':mass_tail,
                           'frame_of_reference_delta':[-1, 0., 0.]},
                   'aero': {'chord':[0.5,0.5],
                            'elastic_axis':0.4,
