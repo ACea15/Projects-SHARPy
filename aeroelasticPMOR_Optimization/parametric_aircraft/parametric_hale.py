@@ -18,10 +18,10 @@ sigma = 1
 # other
 c_ref = 1.0
 # Wing Stiffness & mass
-ea, ga = 1e7, 1e5
-gj = 1e4
-eiy = 2e4
-eiz = 1e2 * eiy
+ea, ga = 1.5e7, 1e5
+gj = 1.5e4
+eiy = 3e4
+eiz = 6e5
 base_stiffness = np.diag([ea, ga, ga, sigma * gj, sigma * eiy, eiz])
 stiffness = np.zeros((1, 6, 6))
 stiffness[0] = base_stiffness
@@ -37,7 +37,7 @@ mass_wing[0, 3:, :3] = -m_chi_cg
 
 # Tail Stiffness and mass of the horizontal tail
 ea_tail = 0.5
-sigma_tail = 100        #Use a multiplication factor
+sigma_tail = 10        #Use a multiplication factor
 m_unit_tail = 0.3
 j_tors_tail  = 0.08
 
