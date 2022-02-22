@@ -149,13 +149,11 @@ g1c['horizontal_tail_right'] = {'workflow': ['create_structure', 'create_aero'],
                                 }
 g1c['horizontal_tail_left'] = {'symmetric': {'component': 'horizontal_tail_right'}}
 
-g1mm = {'model_name': 'hale_test',
+g1mm = {'model_name': 'hale_convergence',
         'model_route': model_route,
         'iterate_type': 'Full_Factorial',
         'write_iterate_vars': True,
-        'iterate_vars': {'fuselage*geometry-length': np.linspace(7, 15., 3),
-                         'wing_r*geometry-length': np.linspace(15, 25., 3),
-                         'winglet_r*geometry-dihedral': np.pi / 180 * np.array([0, 20, 40])},
+        'iterate_vars': {},
         'iterate_labels': {'label_type': 'number',
                            'print_name_var': 0},
         'assembly': {'include_aero': 1,
@@ -185,16 +183,21 @@ g1mm = {'model_name': 'hale_test',
         }
 
 g1sm = {'sharpy': {'simulation_input': None,
-                   'default_module': 'sharpy.routines.basic',
-                   'default_solution': 'sol_0',
-                   'default_solution_vars': {'panels_wake': 16 * 5,
-                                             'AerogridPlot': {'include_rbm': 'off',
-                                                              'include_applied_forces': 'off',
+                   'default_module': 'sharpy.routines.flutter',
+                   'default_solution': 'sol_146',
+                   'default_solution_vars': {'num_modes': 6,
+                                             'alpha': 1.,
+                                             'beta': .0,
+                                             'roll': .0,
+                                             'panels_wake': 16 * 5,
+                                             'AerogridPlot': {'include_rbm': 'on',
+                                                              'include_applied_forces': 'on',
                                                               'minus_m_star': 0},
                                              'BeamPlot': {'include_rbm': 'off',
-                                                          'include_applied_forces': 'off'}},
-                   'default_sharpy': {},
-                   'model_route': None}}
+                                                          'include_applied_forces': 'off'},
+                                             'rom_method':''},
+                                             'default_sharpy': {},
+                                             'model_route': None}}
 
 g1 = gm.Model('sharpy', ['sharpy'], model_dict=g1mm, components_dict=g1c,
               simulation_dict=g1sm)
