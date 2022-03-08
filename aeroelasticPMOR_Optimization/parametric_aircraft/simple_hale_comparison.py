@@ -19,6 +19,25 @@ def define_simulation(sim_dict):
     c_ref = sim_dict['c_ref']
     AoA = sim_dict['AoA']
     bound_panels = sim_dict['bound_panels']
+    if sol_type == 'sol_0':
+        ##############################################
+        # Plot the initial model
+        #############################################
+        sol_dict = {'sharpy': {'simulation_input': None,
+                            'default_module': 'sharpy.routines.basic',
+                            'default_solution': 'sol_0',
+                            'default_solution_vars': {'panels_wake': bound_panels * 5,
+                                                      'add2_flow': \
+                                                          [['AerogridLoader', 'WriteVariablesTime']],
+                                                      'WriteVariablesTime': \
+                                                          {'structure_variables':
+                                                               ['pos', 'psi'],
+                                                           'structure_nodes': list(range(20)),
+                                                           'cleanup_old_solution': 'on'}},
+                            'default_sharpy': {},
+                            'model_route': None}}
+        return sol_dict
+
     #############################################
     #  Aeroelastic equilibrium                  #
     #############################################
@@ -204,7 +223,7 @@ def comp_settings(components=['fuselage', 'wing_r', 'winglet_r',
     g1c = dict()
     g1c['fuselage'] = {'workflow': ['create_structure', 'create_aero0'],
                        'geometry': {'length': 10,
-                                    'num_node': 10,
+                                    'num_node': 11,
                                     'direction': [1., 0., 0.],
                                     'sweep': 0.,
                                     'dihedral': 0.},
@@ -218,8 +237,8 @@ def comp_settings(components=['fuselage', 'wing_r', 'winglet_r',
                        }
 
     g1c['wing_r'] = {'workflow': ['create_structure', 'create_aero'],
-                     'geometry': {'length': 4.,
-                                  'num_node': 13,
+                     'geometry': {'length': 12.,
+                                  'num_node': 11,
                                   'direction': [0., 1., 0.],
                                   'sweep': 0. * np.pi / 180,
                                   'dihedral': 0.},
@@ -232,7 +251,7 @@ def comp_settings(components=['fuselage', 'wing_r', 'winglet_r',
                      }
     g1c['winglet_r'] = {'workflow': ['create_structure', 'create_aero'],
                         'geometry': {'length': 4,
-                                     'num_node': 5,
+                                     'num_node': 3,
                                      'direction': [0., 1., 0.],
                                      'sweep': 0. * np.pi / 180,
                                      'dihedral': 20. * np.pi / 180},
@@ -248,7 +267,7 @@ def comp_settings(components=['fuselage', 'wing_r', 'winglet_r',
     g1c['winglet_l'] = {'symmetric': {'component': 'winglet_r'}}
     g1c['vertical_tail'] = {'workflow': ['create_structure', 'create_aero'],
                             'geometry': {'length': 2.5,
-                                         'num_node': 10,
+                                         'num_node': 11,
                                          'direction': [0., 0., 1.],
                                          'sweep': None,
                                          'dihedral': None},
@@ -261,7 +280,7 @@ def comp_settings(components=['fuselage', 'wing_r', 'winglet_r',
                             }
     g1c['horizontal_tail_right'] = {'workflow': ['create_structure', 'create_aero'],
                                     'geometry': {'length': 2.5,
-                                                 'num_node': 9,
+                                                 'num_node': 11,
                                                  'direction': [0., 1., 0.],
                                                  'sweep': 0.,
                                                  'dihedral': 0.},
@@ -329,6 +348,7 @@ try:
 except:
     model_route = os.getcwd() + '/aeroelasticPMOR_Optimization/parametric_aircraft/' + '/simple_HALE'
 
+sol_type = 'sol_132'
 
 #########################Run simulation for original hale######################
 # Define model (the bad way)
@@ -339,7 +359,7 @@ file2write = folder2write
 case_name = 'simple_HALE'
 bound_panels = 8 # What is this setting?
 # Define sim properties
-sim_dict = {'sol_type':'sol_132',
+sim_dict = {'sol_type': sol_type,
             'u_inf' : 20,
             'rho' : 1.2,
             'c_ref': 1.0,
