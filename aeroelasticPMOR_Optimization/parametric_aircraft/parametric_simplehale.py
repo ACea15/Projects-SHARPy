@@ -1,6 +1,4 @@
-# Code for convergence study of Hale
-# Date: 18/02/22
-# Author: Pablo de Felipe
+
 import numpy as np
 import os
 import pdb
@@ -12,71 +10,84 @@ importlib.reload(gm)
 import sys
 
 try:
-    model_route = os.path.dirname(os.path.realpath(__file__)) + '/single_test_run'
+    model_route = os.path.dirname(os.path.realpath(__file__)) + '/parametric_simplehale'
 except:
-    model_route = os.getcwd() + '/aeroelasticPMOR_Optimization/parametric_aircraft/' + '/single_test_run'
-
+    import inspect
+    __file__ = inspect.getfile(lambda: None)
+    model_route = os.path.dirname(__file__) + '/parametric_simplehale'
 
 def comp_settings(components=['fuselage','wing_r','winglet_r',
                               'wing_l','winglet_l','vertical_tail',
                               'horizontal_tail_right','horizontal_tail_left'],
                   bound_panels=8):
 
+    
     # aeroelasticity parameters
     main_ea = 0.3  # Wing elastic axis from LE as %
     main_cg = 0.3  # Not sure about this input
-    sigma = 1
-
-    # other
+    sigma = 1.5
     c_ref = 1.0
-    # Wing Stiffness & mass
-    ea, ga = 1.5e7, 1e5
-    gj = 1.5e4
-    eiy = 3e4
-    eiz = 6e5
-    base_stiffness = np.diag([ea, ga, ga, sigma * gj, sigma * eiy, eiz])
-    stiffness = np.zeros((1, 6, 6))
-    stiffness[0] = base_stiffness
-    m_unit = 0.75
-    j_tors = 0.075
-    pos_cg_b = np.array([0., c_ref * (main_cg - main_ea), 0.])
-    m_chi_cg = algebra.skew(m_unit * pos_cg_b)
-    mass_wing = np.zeros((1, 6, 6))
-    mass_wing[0, :, :] = np.diag([m_unit, m_unit, m_unit,
-                                  j_tors, .5 * j_tors, .5 * j_tors])
-    mass_wing[0, :3, 3:] = m_chi_cg
-    mass_wing[0, 3:, :3] = -m_chi_cg
 
-    # Tail Stiffness and mass of the horizontal tail
-    ea_tail = 0.5
-    sigma_tail = 10  # Use a multiplication factor
-    m_unit_tail = 0.3
-    j_tors_tail = 0.08
-
-    mass_tail = np.zeros((1, 6, 6))
-    mass_tail[0, :, :] = np.diag([m_unit_tail,
-                                  m_unit_tail,
-                                  m_unit_tail,
-                                  j_tors_tail,
-                                  .5 * j_tors_tail,
-                                  .5 * j_tors_tail])
-    mass_tail[0, :3, 3:] = m_chi_cg
-    mass_tail[0, 3:, :3] = -m_chi_cg
-    # Fuselage Stiffness and mass
+    #########
+    # wings #
+    #########
+    #
+    ea = 1e7
+    ga = 1e5
+    gj = 1e4
+    eiy = 2e4
+    eiz = 4e6
+    m_bar_main = 0.75
+    j_bar_main = 0.075
+    mass_main1 = np.diag([m_bar_main, m_bar_main, m_bar_main,
+                         j_bar_main, 0.5 * j_bar_main, 0.5 * j_bar_main])
+    stiffness_main1 = sigma * np.diag([ea, ga, ga, gj, eiy, eiz])
+    stiffness_main = np.zeros((1, 6, 6))
+    stiffness_main[0] = stiffness_main1
+    mass_main = np.zeros((1, 6, 6))
+    mass_main[0] = mass_main1
+    ############
+    # fuselage #
+    ############
+    #
     sigma_fuselage = 10
-    m_unit_fuselage = 0.2
-    j_tors_fuselage = 0.08
+    m_bar_fuselage = 0.2
+    j_bar_fuselage = 0.08
+    stiffness_fuselage1 = np.diag([ea, ga, ga, gj, eiy, eiz]) * sigma * sigma_fuselage
+    stiffness_fuselage1[4, 4] = stiffness_fuselage1[5, 5]
+    mass_fuselage1 = np.diag([m_bar_fuselage,
+                             m_bar_fuselage,
+                             m_bar_fuselage,
+                             j_bar_fuselage,
+                             j_bar_fuselage * 0.5,
+                             j_bar_fuselage * 0.5])
+    stiffness_fuselage = np.zeros((1, 6, 6))
+    stiffness_fuselage[0] = stiffness_fuselage1
     mass_fuselage = np.zeros((1, 6, 6))
-    mass_fuselage[0, :, :] = np.diag([m_unit_fuselage,
-                                      m_unit_fuselage,
-                                      m_unit_fuselage,
-                                      j_tors_fuselage,
-                                      .5 * j_tors_fuselage,
-                                      .5 * j_tors_fuselage])
-    mass_fuselage[0, :3, 3:] = m_chi_cg
-    mass_fuselage[0, 3:, :3] = -m_chi_cg
+    mass_fuselage[0] = mass_fuselage1
+    ########
+    # tail #
+    ########
+    #
+    sigma_tail = 100
+    m_bar_tail = 0.3
+    j_bar_tail = 0.08
+    stiffness_tail1 = np.diag([ea, ga, ga, gj, eiy, eiz]) * sigma * sigma_tail
+    stiffness_tail1[4, 4] = stiffness_tail1[5, 5]
+    mass_tail1 = np.diag([m_bar_tail,
+                         m_bar_tail,
+                         m_bar_tail,
+                         j_bar_tail,
+                         j_bar_tail * 0.5,
+                         j_bar_tail * 0.5])
+    stiffness_tail = np.zeros((1, 6, 6))
+    stiffness_tail[0] = stiffness_tail1
+    mass_tail = np.zeros((1, 6, 6))
+    mass_tail[0] = mass_tail1
 
-    # Lumped mass
+    ######################################
+    # Lumped mass at fuselage/wing cross #
+    ######################################
     n_lumped_mass = 1  # Number of lumped masses
     lumped_mass_nodes = np.zeros((n_lumped_mass,), dtype=int)  # Maps lumped mass to nodes
     lumped_mass = np.zeros((n_lumped_mass,))  # Array of lumped masses in kg
@@ -84,14 +95,17 @@ def comp_settings(components=['fuselage','wing_r','winglet_r',
     lumped_mass_inertia = np.zeros((n_lumped_mass, 3, 3))  # 3x3 inertia to the previous masses
     lumped_mass_position = np.zeros((n_lumped_mass, 3))  # Relative position to the belonging node in B FoR
 
+    ##############
+    # Components #
+    ##############
     g1c = dict()
     g1c['fuselage'] = {'workflow': ['create_structure', 'create_aero0'],
                        'geometry': {'length': 10,
-                                    'num_node': 11,
+                                    'num_node': 9,
                                     'direction': [1., 0., 0.],
                                     'sweep': 0.,
                                     'dihedral': 0.},
-                       'fem': {'stiffness_db': stiffness,
+                       'fem': {'stiffness_db': stiffness_fuselage,
                                'mass_db': mass_fuselage,
                                'frame_of_reference_delta': [0, 1., 0.],
                                'lumped_mass': lumped_mass,
@@ -101,58 +115,58 @@ def comp_settings(components=['fuselage','wing_r','winglet_r',
                        }
 
     g1c['wing_r'] = {'workflow': ['create_structure', 'create_aero'],
-                     'geometry': {'length': 20.,
-                                  'num_node': 11,
+                     'geometry': {'length': 12.,
+                                  'num_node': 13,
                                   'direction': [0., 1., 0.],
                                   'sweep': 0. * np.pi / 180,
                                   'dihedral': 0.},
-                     'fem': {'stiffness_db': stiffness,
-                             'mass_db': mass_wing,
+                     'fem': {'stiffness_db': stiffness_main,
+                             'mass_db': mass_main,
                              'frame_of_reference_delta': [-1, 0., 0.]},
                      'aero': {'chord': [1., 1.],
-                              'elastic_axis': 0.33,
+                              'elastic_axis': main_ea,
                               'surface_m': bound_panels}
                      }
     g1c['winglet_r'] = {'workflow': ['create_structure', 'create_aero'],
                         'geometry': {'length': 4,
-                                     'num_node': 3,
+                                     'num_node': 5,
                                      'direction': [0., 1., 0.],
-                                     'sweep': 10. * np.pi / 180,
+                                     'sweep': 0. * np.pi / 180,
                                      'dihedral': 20. * np.pi / 180},
-                        'fem': {'stiffness_db': stiffness,
-                                'mass_db': mass_wing,
+                        'fem': {'stiffness_db': stiffness_main,
+                                'mass_db': mass_main,
                                 'frame_of_reference_delta': [-1, 0., 0.]},
                         'aero': {'chord': [1., 1.],
-                                 'elastic_axis': 0.33,
+                                 'elastic_axis': main_ea,
                                  'surface_m': bound_panels,
                                  'merge_surface':True}
-                        }    
+                        }
     g1c['wing_l'] = {'symmetric': {'component': 'wing_r'}}
     g1c['winglet_l'] = {'symmetric': {'component': 'winglet_r'}}
     g1c['vertical_tail'] = {'workflow': ['create_structure', 'create_aero'],
                             'geometry': {'length': 2.5,
-                                         'num_node': 11,
+                                         'num_node': 9,
                                          'direction': [0., 0., 1.],
                                          'sweep': None,
                                          'dihedral': None},
-                            'fem': {'stiffness_db': stiffness * sigma_tail,  # input tail stiffness
+                            'fem': {'stiffness_db': stiffness_tail,
                                     'mass_db': mass_tail,
                                     'frame_of_reference_delta': [-1., 0., 0.]},
-                            'aero': {'chord': [0.5, 0.5],
+                            'aero': {'chord': [0.45, 0.45],
                                      'elastic_axis': 0.5,
                                      'surface_m': bound_panels}
                             }
     g1c['horizontal_tail_right'] = {'workflow': ['create_structure', 'create_aero'],
                                     'geometry': {'length': 2.5,
-                                                 'num_node': 11,
+                                                 'num_node': 9,
                                                  'direction': [0., 1., 0.],
                                                  'sweep': 0.,
                                                  'dihedral': 0.},
-                                    'fem': {'stiffness_db': stiffness * sigma_tail,
+                                    'fem': {'stiffness_db': stiffness_tail,
                                             'mass_db': mass_tail,
                                             'frame_of_reference_delta': [-1, 0., 0.]},
                                     'aero': {'chord': [0.5, 0.5],
-                                             'elastic_axis': 0.4,
+                                             'elastic_axis': 0.5,
                                              'surface_m': bound_panels}
                                     }
     g1c['horizontal_tail_left'] = {'symmetric': {'component': 'horizontal_tail_right'}}
@@ -185,17 +199,17 @@ def model_settings(model_name,
                                     'node_in_upstream': 0},
                          'winglet_r': {'keep_aero_node': 1,
                                        'upstream_component': 'wing_r',
-                                       'node_in_upstream': 10},
+                                       'node_in_upstream': -1},
                          'wing_l': {'upstream_component': 'fuselage',
                                     'node_in_upstream': 0},
                          'winglet_l': {'upstream_component': 'wing_l',
-                                       'node_in_upstream': 10},
+                                       'node_in_upstream': -1},
                          'vertical_tail': {'upstream_component': 'fuselage',
-                                           'node_in_upstream': 10},
+                                           'node_in_upstream': -1},
                          'horizontal_tail_right': {'upstream_component': 'vertical_tail',
-                                                   'node_in_upstream': 10},
+                                                   'node_in_upstream': -1},
                          'horizontal_tail_left': {'upstream_component': 'vertical_tail',
-                                                  'node_in_upstream': 10}
+                                                  'node_in_upstream': -1}
                          }
             }
     for ki in ['fuselage','wing_r', 'winglet_r',
@@ -268,7 +282,7 @@ sol_132 = {'sharpy': {'simulation_input': None,
 u_inf = 10
 rho = 1.2
 c_ref = 1.0
-AoA = 0.3*np.pi/180
+AoA = 2*np.pi/180
 bound_panels = 8
 sol_112 = {
     'sharpy': {'simulation_input': None,
@@ -285,7 +299,7 @@ sol_112 = {
                    'fsi_maxiter': 100,    
                    'fsi_tolerance': 1e-5, 
                    'fsi_relaxation': 0.1,
-                   'fsi_load_steps': 1,  
+                   'fsi_load_steps': 5,  
                    's_maxiter': 100,      
                    's_tolerance': 1e-5,   
                    's_relaxation': 1e-3, 
@@ -303,11 +317,11 @@ sol_112 = {
 #####################################################################
 # Run a flutter solution around an arbitrary aeroelastic equilibrium#
 ####################################################################
-u_inf = 20
+u_inf = 10
 rho = 1.2
 c_ref = 1.0
 AoA = 0.*np.pi/180
-bound_panels = 8
+bound_panels = 4
 sol_152 = {'sharpy': {'simulation_input': None,
                'default_module': 'sharpy.routines.flutter',
                'default_solution': 'sol_152',
@@ -316,7 +330,7 @@ sol_152 = {'sharpy': {'simulation_input': None,
                    'root_method':'bisection',
                    'velocity_increment': 10.,
                    'flutter_error': 0.001,
-                   'damping_tolerance': 5e-3,
+                   'damping_tolerance': 0.,
                    'inout_coordinates': 'modes',
                    'secant_max_calls':15,
                    'rho': rho,
