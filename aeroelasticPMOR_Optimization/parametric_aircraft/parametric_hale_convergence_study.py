@@ -1,6 +1,6 @@
 # Code for convergence study of Hale
-# Date: 18/02/22
-# Author: Pablo de Felipe
+
+
 import numpy as np
 import os
 import pdb
@@ -100,7 +100,7 @@ def comp_settings(components=['fuselage', 'wing_r', 'winglet_r',
                        }
 
     g1c['wing_r'] = {'workflow': ['create_structure', 'create_aero'],
-                     'geometry': {'length': 20.,
+                     'geometry': {'length': 12.,
                                   'num_node': 11,
                                   'direction': [0., 1., 0.],
                                   'sweep': 0. * np.pi / 180,
@@ -116,7 +116,7 @@ def comp_settings(components=['fuselage', 'wing_r', 'winglet_r',
                         'geometry': {'length': 4,
                                      'num_node': 3,
                                      'direction': [0., 1., 0.],
-                                     'sweep': 10. * np.pi / 180,
+                                     'sweep': 0. * np.pi / 180,
                                      'dihedral': 20. * np.pi / 180},
                         'fem': {'stiffness_db': stiffness,
                                 'mass_db': mass_wing,
@@ -230,7 +230,7 @@ sol_0 = {'sharpy': {'simulation_input': None,
 #############################################
 # Modal solution                            #
 #############################################
-u_inf = 20
+u_inf = 10
 rho = 1.2
 c_ref = 1.0
 AoA = 0. * np.pi / 180
@@ -243,7 +243,7 @@ sol_132 = {'sharpy': {'simulation_input': None,
                                                 'rho': rho,
                                                 'dt': c_ref / bound_panels / u_inf,
                                                 'rotationA': [0., AoA, 0.],
-                                                'panels_wake': 1,
+                                                'panels_wake': 80,
                                                 'horseshoe': True,
                                                 'gravity_on': 0,
                                                 'print_modal_matrices': False,
@@ -269,7 +269,7 @@ sol_132 = {'sharpy': {'simulation_input': None,
 u_inf = 10
 rho = 1.2
 c_ref = 1.0
-AoA = 0.3 * np.pi / 180
+AoA = 1.0 * np.pi / 180
 bound_panels = 8
 sol_112 = {
     'sharpy': {'simulation_input': None,
@@ -352,7 +352,7 @@ solutions['112'] = sol_112
 solutions['132'] = sol_132
 solutions['152'] = sol_152
 
-sol_i = '152'  # pick solution to run
+sol_i = '112'  # pick solution to run
 ####### choose components to analyse #########
 # g1 = gm.Model('sharpy', ['sharpy'],
 #               model_dict=model_settings('test_%s'%sol_i,
@@ -364,7 +364,10 @@ sol_i = '152'  # pick solution to run
 ####### ... or do full aircraft #########
 g1 = gm.Model('sharpy', ['sharpy'],
               model_dict=model_settings('test_%s' % sol_i),
+
               components_dict=comp_settings(bound_panels=bound_panels),
               simulation_dict=solutions[sol_i])
 
 data = g1.run()
+
+print(data)
