@@ -348,7 +348,7 @@ try:
 except:
     model_route = os.getcwd() + '/aeroelasticPMOR_Optimization/parametric_aircraft/' + '/simple_HALE'
 
-sol_type = 'sol_132'
+sol_type = 'sol_112'
 
 #########################Run simulation for original hale######################
 # Define model (the bad way)
@@ -363,7 +363,7 @@ sim_dict = {'sol_type': sol_type,
             'u_inf' : 20,
             'rho' : 1.2,
             'c_ref': 1.0,
-            'AoA': 0,
+            'AoA': 1.0 *np.pi/180,
             'bound_panels': bound_panels}
 sol_dict = define_simulation(sim_dict)
 
@@ -380,15 +380,15 @@ sharpyInstance.write_sim(file2write+'.sharpy')
 # Run Sharpy
 dataX = sharpy.sharpy_main.main(['', file2write+'.sharpy'])
 
-print(dataX)
+#print(dataX)
 
 ###############################################################################
 # Run the model from the generator
 
-g1 = gm.Model('sharpy', ['sharpy'],
-              model_dict=model_settings('generated_hale'),
-
-              components_dict=comp_settings(bound_panels=bound_panels),
-              simulation_dict=sol_dict)
-
-data = g1.run()
+# g1 = gm.Model('sharpy', ['sharpy'],
+#               model_dict=model_settings('generated_hale_testing_sol_'),
+#
+#               components_dict=comp_settings(bound_panels=bound_panels),
+#               simulation_dict=sol_dict)
+#
+# data = g1.run()
