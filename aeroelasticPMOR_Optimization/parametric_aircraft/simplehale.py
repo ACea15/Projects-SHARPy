@@ -12,11 +12,11 @@ importlib.reload(gm)
 import sys
 
 try:
-    model_route = os.path.dirname(os.path.realpath(__file__)) + '/simplehale'
+    model_route = os.path.dirname(os.path.realpath(__file__)) + '/simplehale_verification'
 except:
     import inspect
     __file__ = inspect.getfile(lambda: None)
-    model_route = os.path.dirname(__file__) + '/simplehale'
+    model_route = os.path.dirname(__file__) + '/simplehale_verification'
 
 def comp_settings():
 
@@ -27,9 +27,9 @@ def comp_settings():
     g1c = dict()
     g1c['hale'] = {'workflow': ['read_structure', 'read_aero'],
                    'read_structure_file': os.path.dirname(__file__) + \
-                   '/simplehale_verification/simple_HALE.fem.h5',
+                   'simple_HALE.fem.h5',
                    'read_aero_file': os.path.dirname(__file__) + \
-                   '/simplehale_verification/simple_HALE.aero.h5'
+                   'simple_HALE.aero.h5'
                        }
 
     return g1c
