@@ -8,6 +8,12 @@ import pdb
 import importlib
 import cases.models_generator.gen_main as gm
 import sharpy.utils.algebra as algebra
+import pandas as pd
+
+import sharpy.utils.generate_cases as gc
+import sharpy.utils.h5utils as h5utils
+import sharpy.utils.solver_interface as solver_interface
+import sharpy.sharpy_main
 
 importlib.reload(gm)
 import sys
@@ -228,8 +234,8 @@ def model_settings(model_name,
     return g1mm
 
 # Calculate the wing semispan for different aspect ratios
-# AR = np.array((10,20,30,40,50))
-AR = np.array((10,20,30,40,50))
+AR = np.array((10,20,30,40))
+#AR = np.array((10,20))
 winglt_length = 4.0
 winglt_dhdrl  = 20*np.pi/180
 wing_chord    = 1.0
@@ -293,7 +299,11 @@ sol_112 = {
                'model_route': None
                }
 }
+# Preallocate arrays to store in data
+print(len(AR))
 
+wing_def = np.zeros((len(AR),))
+psi      = wing_def
 sol_i = '112'  # pick solution to run
 ####### choose components to analyse #########
 # g1 = gm.Model('sharpy', ['sharpy'],
@@ -311,6 +321,40 @@ for i in range(len(AR)):
                                                 bound_panels=bound_panels),
                   simulation_dict=sol_112)
 
-    data = g1.run()
+    #data = g1.run()
+    # For some reason data is empty, have tried data[0] in notebook but does not help
+    # As a fix run it manually
+    os.chdir('./aspectRatio_wingDef/ar_'+'%s' %AR[i])
+    data = sharpy.sharpy_main.main(['', 'ar_%s.sharpy' %AR[i]])
+    # Store the values from the data file
+
+    yc_ini = data.structure.fortran['pos_ini'][:, 1] # Undeformed y coordinates
+    wing_node = int(np.where(yc_ini == wing_semispan[i])[0][0])
+
+    coordinates = data.structure.timestep_info[0].pos
+    #rotations   = data.structure.timestep_info[0].psi
+    xc = coordinates[:, 0]
+    yc = coordinates[:, 1]
+    zc = coordinates[:, 2]
+
+    wing_def[i] = zc[wing_node]
+    # Go back to the surrogate directory
+    os.chdir('/home/pablodfs/FYP/Projects-SHARPy/aeroelasticPMOR_Optimization/surrogate_model/')
+
+# Export results via a pandas DataFrame
+data = {
+    "AR" : AR,
+    "wing_Def": wing_def,
+    "semi_span": wing_semispan
+}
+# Create the pandas data frame
+data_pandas = pd.DataFrame(data)
+# Change the directy to save in the model route folder
+os.chdir(model_route)
+# Write to a csv file
+data_pandas.to_csv('ar_wing_def.csv')
+
+
+
 
 
