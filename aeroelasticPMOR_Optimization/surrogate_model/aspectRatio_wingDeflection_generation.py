@@ -234,8 +234,9 @@ def model_settings(model_name,
     return g1mm
 
 # Calculate the wing semispan for different aspect ratios
-AR = np.array((10,20,30,40))
+#AR = np.array((10,20,30,40))
 #AR = np.array((10,20))
+AR = np.array((20,25,35))
 winglt_length = 4.0
 winglt_dhdrl  = 20*np.pi/180
 wing_chord    = 1.0
@@ -329,8 +330,11 @@ for i in range(len(AR)):
     # Store the values from the data file
 
     yc_ini = data.structure.fortran['pos_ini'][:, 1] # Undeformed y coordinates
-    wing_node = int(np.where(yc_ini == wing_semispan[i])[0][0])
-
+    print(yc_ini)
+    print(wing_semispan[i])
+    print(np.where(yc_ini == wing_semispan[i]))
+    #wing_node = int(np.where(yc_ini == wing_semispan[i])[0][0])
+    wing_node  = 20
     coordinates = data.structure.timestep_info[0].pos
     #rotations   = data.structure.timestep_info[0].psi
     xc = coordinates[:, 0]
@@ -352,7 +356,7 @@ data_pandas = pd.DataFrame(data)
 # Change the directy to save in the model route folder
 os.chdir(model_route)
 # Write to a csv file
-data_pandas.to_csv('ar_wing_def.csv')
+data_pandas.to_csv('ar_wing_def_testing2.csv')
 
 
 
