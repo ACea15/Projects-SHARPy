@@ -353,7 +353,7 @@ data = {
 }
 # Create the pandas data frame
 data_pandas = pd.DataFrame(data)
-# Change the directy to save in the model route folder
+# Change the directory to save in the model route folder
 os.chdir(model_route)
 # Write to a csv file
 data_pandas.to_csv('ar_wing_def_testing2.csv')
