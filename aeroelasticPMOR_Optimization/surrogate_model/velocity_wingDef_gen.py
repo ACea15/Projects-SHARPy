@@ -20,12 +20,12 @@ importlib.reload(gm)
 import sys
 
 # Set the folder structure in case it is already not set
-foldername = 'velocity_wingDef'
+foldername = 'velocity_wingDef_test'
 dirname = os.getcwd()
 targetpath = os.path.join(dirname,foldername)
 
 if os.path.exists(targetpath):
-    print('hello!')# No need to do anything
+    print('Folder already exists!')# No need to do anything
 else:
     os.mkdir(foldername)
 
@@ -336,8 +336,9 @@ for i in range(len(u_inf)):
                   model_dict=model_settings('vel_%s' %int(u_inf[i])),
                   components_dict=comp_settings(wing_semispan,
                                                 bound_panels=bound_panels),
-                  simulation_dict=define_sol_112(u_inf[i],AoA_deg,rho,bound_panels))
-    # Create a the file structure inside the folder
+                  #simulation_dict=define_sol_112(u_inf[i],AoA_deg,rho,bound_panels)
+                  simulation_dict=sol_0)
+    # Create the file structure inside the folder
     g1.build() # Build the model
     # For this single built model create the files required
     folder2write = targetpath + '/vel_%s' %int(u_inf[i])
