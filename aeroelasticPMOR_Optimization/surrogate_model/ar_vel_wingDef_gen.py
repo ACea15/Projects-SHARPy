@@ -11,6 +11,7 @@ importlib.reload(gm)
 import sys
 from sharpy.utils.stochastic import Iterations
 import pandas as pd
+import pickle
 
 # Set the folder structure in case it is already not set
 foldername = 'ar_vel_wingDef'
@@ -329,55 +330,119 @@ for mi in range(num_models):
     # Set the wingspan and velocity variable
     i = int(model_labels[mi].split("_")[0]) # First variable being AR
     j = int(model_labels[mi].split("_")[1]) # Second variable being velocity
-    if (i==6) and (j==2):
-        break
-    else:
-        g1 = gm.Model('sharpy',['sharpy'],
-                      model_dict=model_settings(foldername+'%s' %model_labels[mi]),
-                      components_dict=comp_settings(wing_semispan[i],
-                                                    bound_panels=bound_panels),
-                      simulation_dict=define_sol_112(u_inf[j],AoA_deg,rho,bound_panels))
-                      #simulation_dict = sol_0)
-        # Create the file structure inside the folder
-        g1.build()  # Build the model
-        # For this single built model create the files required
-        folder2write = targetpath + '/'+foldername+'%s' % model_labels[mi]
-        file2write = targetpath + '/'+foldername+'%s' % model_labels[mi] + '/'+foldername+'%s' %model_labels[mi]
+    # Check whether the simulation has been already ran
+    # For this single built model create the files required
+    folder2write = targetpath + '/' + foldername + '%s' % model_labels[mi]
+    file2write = targetpath + '/' + foldername + '%s' % model_labels[mi] + '/' + foldername + '%s' % model_labels[mi]
+    # file2check = file2write+'/'+foldername+'%s' % model_labels[mi]+'.pkl'    # Path to the pickle file
+    file2check = file2write + '/forces'
+    if os.path.exists(file2check):
+        print('File exists!')
+        # Open the pickle file and get the wing deflection without running the code
+        os.chdir(file2write)
+        infile = open(foldername + '%s' % model_labels[mi] + '.pkl', 'rb')
+        data = pickle.load(infile)
+        infile.close()
 
-        m = 0
-        g1.built_models[m].sharpy.sim = gm.Simulation(sim_type='sharpy',
-                                                    settings_sim=g1.simulation_dict['sharpy'],
-                                                    case_route=folder2write,
-                                                    case_name=g1.model_dict['model_name'])
-        g1.built_models[m].sharpy.sim.get_sharpy(
-            inp=g1.simulation_dict['sharpy']['simulation_input'])
-        g1.built_models[m].sharpy.write_structure(file2write + '.fem.h5')
-        g1.built_models[m].sharpy.write_aero(file2write + '.aero.h5')
-        g1.built_models[m].sharpy.write_sim(file2write + '.sharpy')
-
-        #data = g1.run() This is a shit!!
-        # For some reason data is empty, have tried data[0] in notebook but does not help
-        # As a fix run it manually
-        os.chdir('./'+foldername+'/'+foldername + '%s' % model_labels[mi])
-        data = sharpy.sharpy_main.main(['', foldername+'%s.sharpy' % model_labels[mi]])
-        # Store the values from the data file
-
-        #wing_node = int(np.where(yc_ini == wing_semispan[i])[0][0])
-        wing_node  = 20
+        wing_node=20
         coordinates = data.structure.timestep_info[0].pos
-        #rotations   = data.structure.timestep_info[0].psi
-        xc = coordinates[:, 0]
-        yc = coordinates[:, 1]
         zc = coordinates[:, 2]
 
         wing_def[mi] = zc[wing_node]
-        ar_pandas[mi] = iteration.varl_combinations[mi][0]
-        vel_pandas[mi] = iteration.varl_combinations[mi][1]
+        ar_pandas[mi] = AR[i]
+        vel_pandas[mi] = u_inf[j]
         # Go back to the surrogate directory
         os.chdir('/home/pablodfs/FYP/Projects-SHARPy/aeroelasticPMOR_Optimization/surrogate_model/')
+    else:
+        if (i==2)and(j==6):
+            g1 = gm.Model('sharpy', ['sharpy'],
+                          model_dict=model_settings(foldername + '%s' % model_labels[mi]),
+                          components_dict=comp_settings(wing_semispan[i],
+                                                        bound_panels=bound_panels),
+                          simulation_dict=define_sol_112(u_inf[j], AoA_deg, rho, bound_panels))
+            # simulation_dict = sol_0)
+            # Create the file structure inside the folder
+            g1.build()  # Build the model
+            m = 0
+            g1.built_models[m].sharpy.sim = gm.Simulation(sim_type='sharpy',
+                                                          settings_sim=g1.simulation_dict['sharpy'],
+                                                          case_route=folder2write,
+                                                          case_name=g1.model_dict['model_name'])
+            g1.built_models[m].sharpy.sim.get_sharpy(
+                inp=g1.simulation_dict['sharpy']['simulation_input'])
+            g1.built_models[m].sharpy.write_structure(file2write + '.fem.h5')
+            g1.built_models[m].sharpy.write_aero(file2write + '.aero.h5')
+            g1.built_models[m].sharpy.write_sim(file2write + '.sharpy')
+
+            # data = g1.run() This is a shit!!
+            # For some reason data is empty, have tried data[0] in notebook but does not help
+            # As a fix run it manually
+            os.chdir('./' + foldername + '/' + foldername + '%s' % model_labels[mi])
+            data = sharpy.sharpy_main.main(['', foldername + '%s.sharpy' % model_labels[mi]])
+            # Store the values from the data file
+
+            # wing_node = int(np.where(yc_ini == wing_semispan[i])[0][0])
+            wing_node = 20
+            coordinates = data.structure.timestep_info[0].pos
+            # rotations   = data.structure.timestep_info[0].psi
+            xc = coordinates[:, 0]
+            yc = coordinates[:, 1]
+            zc = coordinates[:, 2]
+
+            wing_def[mi] = zc[wing_node]
+            ar_pandas[mi] = iteration.varl_combinations[mi][0]
+            vel_pandas[mi] = iteration.varl_combinations[mi][1]
+            # Go back to the surrogate directory
+            os.chdir('/home/pablodfs/FYP/Projects-SHARPy/aeroelasticPMOR_Optimization/surrogate_model/')
+        else:
+            if (i+j>7) or ((i==4)and(j==3)):
+                continue
+            elif (i==3)and(j==4):
+                continue
+            else:
+                g1 = gm.Model('sharpy',['sharpy'],
+                              model_dict=model_settings(foldername+'%s' %model_labels[mi]),
+                              components_dict=comp_settings(wing_semispan[i],
+                                                            bound_panels=bound_panels),
+                              simulation_dict=define_sol_112(u_inf[j],AoA_deg,rho,bound_panels))
+                              #simulation_dict = sol_0)
+                # Create the file structure inside the folder
+                g1.build()  # Build the model
+                m = 0
+                g1.built_models[m].sharpy.sim = gm.Simulation(sim_type='sharpy',
+                                                            settings_sim=g1.simulation_dict['sharpy'],
+                                                            case_route=folder2write,
+                                                            case_name=g1.model_dict['model_name'])
+                g1.built_models[m].sharpy.sim.get_sharpy(
+                    inp=g1.simulation_dict['sharpy']['simulation_input'])
+                g1.built_models[m].sharpy.write_structure(file2write + '.fem.h5')
+                g1.built_models[m].sharpy.write_aero(file2write + '.aero.h5')
+                g1.built_models[m].sharpy.write_sim(file2write + '.sharpy')
+
+                #data = g1.run() This is a shit!!
+                # For some reason data is empty, have tried data[0] in notebook but does not help
+                # As a fix run it manually
+                os.chdir('./'+foldername+'/'+foldername + '%s' % model_labels[mi])
+                data = sharpy.sharpy_main.main(['', foldername+'%s.sharpy' % model_labels[mi]])
+                # Store the values from the data file
+
+                #wing_node = int(np.where(yc_ini == wing_semispan[i])[0][0])
+                wing_node  = 20
+                coordinates = data.structure.timestep_info[0].pos
+                #rotations   = data.structure.timestep_info[0].psi
+                xc = coordinates[:, 0]
+                yc = coordinates[:, 1]
+                zc = coordinates[:, 2]
+
+                wing_def[mi] = zc[wing_node]
+                ar_pandas[mi] = iteration.varl_combinations[mi][0]
+                vel_pandas[mi] = iteration.varl_combinations[mi][1]
+                # Go back to the surrogate directory
+                os.chdir('/home/pablodfs/FYP/Projects-SHARPy/aeroelasticPMOR_Optimization/surrogate_model/')
 
 # Export results via a pandas DataFrame
 data = {
+    "label": model_labels,
     "ar":ar_pandas,
     "vel" : vel_pandas,
     "wing_Def": wing_def
