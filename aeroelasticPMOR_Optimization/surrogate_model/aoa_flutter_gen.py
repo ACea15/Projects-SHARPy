@@ -1,5 +1,6 @@
 # Code to obtain flutter speed for varying AoA
-# AR kept constant at 20
+# AR kept constant at 10 and Uinf = 10m/s
+# Change the chord length to keep wing area constant
 # Date of start: 06/04/22
 # Author: Pablo de Felipe
 
@@ -39,16 +40,28 @@ except:
     model_route = os.path.dirname(__file__) + '/'+foldername
 
 
-def comp_settings(wing_semispan,
+def comp_settings(wing_length,
+                  winglt_length,
+                  wing_chord,
+                  winglt_chord,
                   components=['fuselage', 'wing_r', 'winglet_r',
                               'wing_l', 'winglet_l', 'vertical_tail',
                               'horizontal_tail_right', 'horizontal_tail_left'],
                   bound_panels=8):
+    """ Function defining the parts of the model
+    Args:
+        wing_length   - Wing semispan without including the winglet in m
+        wing_chord    - 1x2 nparray = [root chord, tip chord] in m
+        winglt_chord  - 1x2 nparray = [root chord, tip chord] in m
+        components    - List of components
+        bound_panels  - bound panels on the wing and other lifting surfaces
+    Returns:
+        g1c_output    - Dictionary with all the data on components of the model
+        """
     # aeroelasticity parameters
     main_ea = 0.3  # Wing elastic axis from LE as %
     main_cg = 0.3  # Not sure about this input
     sigma = 1.5
-    c_ref = 1.0
 
     #########
     # wings #
@@ -137,7 +150,7 @@ def comp_settings(wing_semispan,
                        }
 
     g1c['wing_r'] = {'workflow': ['create_structure', 'create_aero'],
-                     'geometry': {'length': wing_semispan,
+                     'geometry': {'length': wing_length,
                                   'num_node': 13,
                                   'direction': [0., 1., 0.],
                                   'sweep': 0. * np.pi / 180,
@@ -145,12 +158,12 @@ def comp_settings(wing_semispan,
                      'fem': {'stiffness_db': stiffness_main,
                              'mass_db': mass_main,
                              'frame_of_reference_delta': [-1, 0., 0.]},
-                     'aero': {'chord': [1., 1.],
+                     'aero': {'chord': wing_chord,
                               'elastic_axis': main_ea,
                               'surface_m': bound_panels}
                      }
     g1c['winglet_r'] = {'workflow': ['create_structure', 'create_aero'],
-                        'geometry': {'length': 4,
+                        'geometry': {'length': winglt_length,
                                      'num_node': 5,
                                      'direction': [0., 1., 0.],
                                      'sweep': 0. * np.pi / 180,
@@ -158,7 +171,7 @@ def comp_settings(wing_semispan,
                         'fem': {'stiffness_db': stiffness_main,
                                 'mass_db': mass_main,
                                 'frame_of_reference_delta': [-1, 0., 0.]},
-                        'aero': {'chord': [1., 1.],
+                        'aero': {'chord': winglt_chord,
                                  'elastic_axis': main_ea,
                                  'surface_m': bound_panels,
                                  'merge_surface': True}
@@ -328,13 +341,20 @@ def define_sol_152(u_inf,AoA_deg,rho,bound_panels):
 #AR  = np.array((30,))
 #AR = np.linspace(10,40,7)
 AR = 10.
-winglt_length = 4.0
+Sref = 32. #m^2
+dhdrlSpanFraction = 0.25    # Ratio of each dihedral wing section to semispan
+wing_span = np.sqrt(AR*Sref)
+#wing_semispan = 0.5*AR*wing_chord-winglt_length*np.cos(winglt_dhdrl)
+wing_semispan = wing_span*0.5
+wing_length = wing_semispan*(1-dhdrlSpanFraction)
+winglt_length = dhdrlSpanFraction*wing_semispan
 winglt_dhdrl  = 20*np.pi/180
-wing_chord    = 1.0
-wing_semispan = 0.5*AR*wing_chord-winglt_length*np.cos(winglt_dhdrl)
+chord = Sref/wing_span
+wing_chord    = [chord, chord] # To keep area constant -> will need ot have 2 chords with taper
+winglt_chord  = [chord, chord]
 
-u_inf = 20.
-rho = 1.2
+u_inf = 10.                     # Keep the speed constant!
+rho = 1.225                     # Could be more precise at 1.225 kg/m^3
 AoA_deg = np.linspace(0.0,3.6,7)
 bound_panels = 8
 
@@ -381,7 +401,10 @@ for i in range(len(AoA_deg)):
     else:
         g1 = gm.Model('sharpy', ['sharpy'],
                       model_dict=model_settings(foldername+'_%s' %int(i)),
-                      components_dict=comp_settings(wing_semispan,
+                      components_dict=comp_settings(wing_length,
+                                                    winglt_length,
+                                                    wing_chord,
+                                                    winglt_chord,
                                                     bound_panels=bound_panels),
                       simulation_dict=define_sol_152(u_inf,AoA_deg[i],rho,bound_panels))
                       #simulation_dict=sol_0)
@@ -403,6 +426,7 @@ for i in range(len(AoA_deg)):
         # As a fix run it manually
         os.chdir('./'+foldername+'/'+foldername+'_%s' %int(i))
         data = sharpy.sharpy_main.main(['', foldername+'_%s.sharpy' %int(i)])
+
         # Store the values from the data file
         u_flutter[i] = data.linear.dynamic_loads['flutter_results']['u_flutter'][0]
         # Go back to the surrogate directory
