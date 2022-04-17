@@ -11,6 +11,7 @@ import importlib
 import cases.models_generator.gen_main as gm
 import sharpy.utils.algebra as algebra
 import pandas as pd
+import pickle
 
 import sharpy.utils.generate_cases as gc
 import sharpy.utils.h5utils as h5utils
@@ -289,7 +290,7 @@ def define_sol_112(u_inf,AoA_deg,rho,bound_panels):
                        'dt': c_ref / bound_panels / u_inf,
                        'panels_wake': bound_panels * 5,
                        'rotationA': [0., AoA, 0.],
-                       'horseshoe': False,
+                       'horseshoe': True,
                        'fsi_maxiter': 100,
                        'fsi_tolerance': 1e-5,
                        'fsi_relaxation': 0.1,
@@ -361,13 +362,13 @@ rho = 1.225                     # Could be more precise at 1.225 kg/m^3
 AoA_deg = 1.2                   # Choose an angle from the ones you will be working with
 bound_panels = 8                # Required by simulations to discreetise wing
 
-# Define parameter being varie
+# Define parameter being varies
 AR = np.linspace(20,44,7)
 
 # Define output parameters
 lift = np.zeros((len(AR),))
 drag = np.zeros((len(AR),))
-moment = np.zeros((len(AR),))
+my = np.zeros((len(AR),))       # Pitching moment
 
 # Calculate wing and winglet dimensions
 wing_span = np.sqrt(AR*Sref)
@@ -376,6 +377,8 @@ wing_semispan = wing_span*0.5
 wing_length = wing_semispan*(1-dhdrlSpanFraction)
 winglt_length = dhdrlSpanFraction*wing_semispan
 chord = Sref/wing_span
+wing_semispan2 = (wing_length+winglt_length*np.cos(winglt_dhdrl))
+Sref2 = 2*wing_semispan2*chord
 #wing_chord    = [chord, chord] # To keep area constant -> will need ot have 2 chords with taper
 #winglt_chord  = [chord, chord]
 
@@ -393,6 +396,14 @@ for i in range(len(AR)):
         data = pickle.load(infile)
         infile.close()
         # Obtain the data
+        aero = data.aero.timestep_info[0]
+        force = aero.total_steady_inertial_forces[:3]
+        moment = aero.total_steady_inertial_forces[3:]
+        lift[i] = force[2]
+        drag[i] = force[0]  # In N? and it is only induced drag!
+        my[i] = moment[1]  # In Nm and it is the pitching moment! i.e My
+        # Go back to the main directory
+        os.chdir('/home/pablodfs/FYP/Projects-SHARPy/aeroelasticPMOR_Optimization/surrogate_model/')
     else:
         g1 = gm.Model('sharpy', ['sharpy'],
                       model_dict=model_settings(foldername + '_%s' % int(i)),
@@ -402,7 +413,8 @@ for i in range(len(AR)):
                                                     [chord[i],chord[i]],
                                                     bound_panels=bound_panels),
                       #simulation_dict=define_sol_152(u_inf, AoA_deg[i], rho, bound_panels))
-                      simulation_dict=define_sol_0())
+                      #simulation_dict=define_sol_0()
+                      simulation_dict= define_sol_112(u_inf,AoA_deg,rho,bound_panels))
         # Create the file structure inside the folder
         g1.build()  # Build the model
         mi = 0
@@ -422,9 +434,31 @@ for i in range(len(AR)):
         os.chdir('./' + foldername + '/' + foldername + '_%s' % int(i))
         data = sharpy.sharpy_main.main(['', foldername + '_%s.sharpy' % int(i)])
         # Store the values from the data file
+        aero = data.aero.timestep_info[0]
+        force = aero.total_steady_inertial_forces[:3]
+        moment = aero.total_steady_inertial_forces[3:]
+        lift[i] = force[2]
+        drag[i] = force[0]          # In N? and it is only induced drag!
+        my[i] = moment[1]        # In Nm and it is the pitching moment! i.e My
 
         # Go back to the surrogate directory
         os.chdir('/home/pablodfs/FYP/Projects-SHARPy/aeroelasticPMOR_Optimization/surrogate_model/')
 
+# Export results via a pandas DataFrame
+data = {
+    "ar" : AR,
+    "lift": lift,
+    "drag": drag,
+    "my": my,
+    "Sref2": Sref2,
+    "s": wing_semispan,
+    "s2":wing_semispan2
+}
+# Create the pandas data frame
+data_pandas = pd.DataFrame(data)
+# Change the directory to save in the model route folder
+os.chdir(model_route)
+# Write to a csv file
+data_pandas.to_csv(foldername+'.csv')
 
 
