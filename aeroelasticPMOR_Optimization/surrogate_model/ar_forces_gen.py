@@ -360,9 +360,9 @@ u_inf = 10.                     # Keep the speed constant!
 rho = 1.225                     # Could be more precise at 1.225 kg/m^3
 #AoA_deg = np.linspace(0.0,3.6,7)
 AoA_deg = 1.2                   # Choose an angle from the ones you will be working with
-bound_panels = 8                # Required by simulations to discreetise wing
+bound_panels = 8                # Required by simulations to discretise wing
 
-# Define parameter being varies
+# Define parameter that varies
 AR = np.linspace(20,44,7)
 
 # Define output parameters
