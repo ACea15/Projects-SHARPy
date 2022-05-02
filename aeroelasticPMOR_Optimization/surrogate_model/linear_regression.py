@@ -46,7 +46,7 @@ class Polynomial:
             b (np.array): 2D array with evaluations of the basis function
                 stencil for every training point used
             """
-        k = 2#self.degree
+        k = self.degree
         num = x.size
         b = np.zeros([num, k + 1])
         b[:, 0] = 1
@@ -79,10 +79,25 @@ class Polynomial:
         params = self.theta
         k = self.degree
         for i in range(len(x)):
-            btest = Polynomial.polynomial_basis(k, np.array([x[i]]))
+            btest = Polynomial.polynomial_basis(self, np.array([x[i]]))
             y[i] = np.dot(btest, params)
 
         return y
+    def eval_error(self):
+        """ Function which calculates the Mean Squared Error MSE
 
+        Args:
+            self - with attributes testing_points
+        Returns:
+            error - MSE error
+        """
+        x_test = self.x_test
+        y_test= self.y_test
+        error = 0;
+        for i in range(len(x_test)):
+            ys = Polynomial.eval_surrogate(self,np.array([x_test[i]]))
+            error += (ys - y_test[i]) ** 2
+        error = error / len(x_test)
+        return float(error)
 
 
