@@ -2,6 +2,7 @@
 # AR kept constant at 10 and Uinf = 10m/s
 # Change the chord length to keep wing area constant
 # Date of start: 06/04/22
+# Updated on   : 03/05/22 -> Obtain the data that converges
 # Author: Pablo de Felipe
 
 import numpy as np
@@ -11,6 +12,7 @@ import importlib
 import cases.models_generator.gen_main as gm
 import sharpy.utils.algebra as algebra
 import pandas as pd
+import pickle
 
 import sharpy.utils.generate_cases as gc
 import sharpy.utils.h5utils as h5utils
@@ -388,50 +390,52 @@ for i in range(len(AoA_deg)):
     # For this single built model create the files required
     folder2write = targetpath + '/' + foldername + '_%s' % int(i)
     file2write = targetpath + '/' + foldername + '_%s' % int(i) + '/' + foldername + '_%s' % int(i)
-    file2check = file2write + '/forces'
-    if os.path.exists(file2check):
-        print('File exists!')
-        # Open the pickle file and get the wing deflection without running the code
-        os.chdir(file2write)
-        infile = open(foldername + '_%s' % int(i) + '.pkl', 'rb')
-        data = pickle.load(infile)
-        infile.close()
-        # Obtain the flutter speed
-        u_flutter[i] = data.linear.dynamic_loads['flutter_results']['u_flutter'][0]
+    file2check = file2write + '/beam_modal_analysis'
+    if i<5:
+        if os.path.exists(file2check):
+            print('File exists!')
+            # Open the pickle file and get the wing deflection without running the code
+            os.chdir(file2write)
+            infile = open(foldername + '_%s' % int(i) + '.pkl', 'rb')
+            data = pickle.load(infile)
+            infile.close()
+            # Obtain the flutter speed
+            u_flutter[i] = data.linear.dynamic_loads['flutter_results']['u_flutter'][0]
+        else:
+            g1 = gm.Model('sharpy', ['sharpy'],
+                          model_dict=model_settings(foldername+'_%s' %int(i)),
+                          components_dict=comp_settings(wing_length,
+                                                        winglt_length,
+                                                        wing_chord,
+                                                        winglt_chord,
+                                                        bound_panels=bound_panels),
+                          simulation_dict=define_sol_152(u_inf,AoA_deg[i],rho,bound_panels))
+                          #simulation_dict=sol_0)
+            # Create the file structure inside the folder
+            g1.build() # Build the model
+            mi = 0
+            g1.built_models[mi].sharpy.sim = gm.Simulation(sim_type='sharpy',
+                                                        settings_sim=g1.simulation_dict['sharpy'],
+                                                        case_route=folder2write,
+                                                        case_name = g1.model_dict['model_name'])
+            g1.built_models[mi].sharpy.sim.get_sharpy(
+                inp=g1.simulation_dict['sharpy']['simulation_input'])
+            g1.built_models[mi].sharpy.write_structure(file2write + '.fem.h5')
+            g1.built_models[mi].sharpy.write_aero(file2write + '.aero.h5')
+            g1.built_models[mi].sharpy.write_sim(file2write + '.sharpy')
+
+            # data = g1build.run()
+            # For some reason data is empty, have tried data[0] in notebook but does not help
+            # As a fix run it manually
+            os.chdir('./'+foldername+'/'+foldername+'_%s' %int(i))
+            data = sharpy.sharpy_main.main(['', foldername+'_%s.sharpy' %int(i)])
+
+            # Store the values from the data file
+            u_flutter[i] = data.linear.dynamic_loads['flutter_results']['u_flutter'][0]
+            # Go back to the surrogate directory
+            os.chdir('/home/pablodfs/FYP/Projects-SHARPy/aeroelasticPMOR_Optimization/surrogate_model/')
     else:
-        g1 = gm.Model('sharpy', ['sharpy'],
-                      model_dict=model_settings(foldername+'_%s' %int(i)),
-                      components_dict=comp_settings(wing_length,
-                                                    winglt_length,
-                                                    wing_chord,
-                                                    winglt_chord,
-                                                    bound_panels=bound_panels),
-                      simulation_dict=define_sol_152(u_inf,AoA_deg[i],rho,bound_panels))
-                      #simulation_dict=sol_0)
-        # Create the file structure inside the folder
-        g1.build() # Build the model
-        mi = 0
-        g1.built_models[mi].sharpy.sim = gm.Simulation(sim_type='sharpy',
-                                                    settings_sim=g1.simulation_dict['sharpy'],
-                                                    case_route=folder2write,
-                                                    case_name = g1.model_dict['model_name'])
-        g1.built_models[mi].sharpy.sim.get_sharpy(
-            inp=g1.simulation_dict['sharpy']['simulation_input'])
-        g1.built_models[mi].sharpy.write_structure(file2write + '.fem.h5')
-        g1.built_models[mi].sharpy.write_aero(file2write + '.aero.h5')
-        g1.built_models[mi].sharpy.write_sim(file2write + '.sharpy')
-
-        # data = g1build.run()
-        # For some reason data is empty, have tried data[0] in notebook but does not help
-        # As a fix run it manually
-        os.chdir('./'+foldername+'/'+foldername+'_%s' %int(i))
-        data = sharpy.sharpy_main.main(['', foldername+'_%s.sharpy' %int(i)])
-
-        # Store the values from the data file
-        u_flutter[i] = data.linear.dynamic_loads['flutter_results']['u_flutter'][0]
-        # Go back to the surrogate directory
-        os.chdir('/home/pablodfs/FYP/Projects-SHARPy/aeroelasticPMOR_Optimization/surrogate_model/')
-
+        break
 # Export results via a pandas DataFrame
 data = {
     "aoa_deg" : AoA_deg,
