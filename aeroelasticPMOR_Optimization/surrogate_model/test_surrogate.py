@@ -23,6 +23,7 @@ output_name = 'u_flutter'
 parameter_names = ['aoa_deg']
 folder_path = cwd+'/'+foldername+'/'
 file_path = folder_path + foldername+'.csv'
+error_file_path = folder_path+foldername+'_error.csv'
 surr_dict = {
     'output_name': output_name,
     'parameter_names': parameter_names,
@@ -40,7 +41,5 @@ flutter_surr.sort_data(i_train,i_test)
 u_flutter_ref = 28.     # Reference flutter speed for error evaluation
 
 flutter_surr.test_1Dcases(u_flutter_ref)
-
-
-
+flutter_surr.save_1Dcases_erros(error_file_path)
 
