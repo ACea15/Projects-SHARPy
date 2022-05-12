@@ -36,6 +36,7 @@ def comp_settings(wing_length,
                   wing_chord,
                   winglt_chord,
                   eiy,
+                  m_bar_wing,
                   components=['fuselage', 'wing_r', 'winglet_r',
                               'wing_l', 'winglet_l', 'vertical_tail',
                               'horizontal_tail_right', 'horizontal_tail_left'],
@@ -65,7 +66,7 @@ def comp_settings(wing_length,
     gj = 1e4
     #eiy = 2e4
     eiz = 4e6
-    m_bar_main = 0.75
+    m_bar_main = m_bar_wing
     j_bar_main = 0.075
     mass_main1 = np.diag([m_bar_main, m_bar_main, m_bar_main,
                           j_bar_main, 0.5 * j_bar_main, 0.5 * j_bar_main])
@@ -303,16 +304,31 @@ def define_sol_112(u_inf,AoA_deg,rho,bound_panels):
                    }
     }
     return sol_112
+
+def linear_wingWeight(w1, taper, Sref):
+    """Function to calculate the linear weight of the wing in kg/m
+
+    Args:
+        w1    - Constant for the wing
+        taper - taper ratio
+        Sref  - Wing Area in m^2
+
+    Returns:
+        linear_wingWeight
+    """
+    linear_wingWeight = w1 * taper ** 0.05 / (Sref) ** 0.5
+
+    return linear_wingWeight
 ####################FUNCTION DEFINITIONS END###################################
 # Define the constants
 Sref = 32. # m^2 measured using a simplified method without considering dihedral
 dhdrlSpanFraction = 0.25 # Ratio of each dihedral wing section to semispan
 winglt_dhdrl  = 20*np.pi/180
 AR = np.array([32,])
-
+w1 = 3*(2**0.5)                 # Constant for the wing weight
 u_inf = 10.                     # Keep the speed constant!
 rho = 1.225                     # Could be more precise at 1.225 kg/m^3
-eiy = 2e4                       # Bending stifness
+eiy = 2e4                       # Bending stiffness
 bound_panels = 8                # Required by simulations to discretise wing
 
 # Define variables to iterate
@@ -362,7 +378,7 @@ for mi in range(num_models):
     # Get the index number for each of the variables (using alphabetical order)
     i = int(model_labels[mi].split("_")[0])  # First variable being AoA
     j = int(model_labels[mi].split("_")[1])  # Second variable being AR
-    k = int(model_labels[mi].split("_")[2])  # Second variable being AR
+    k = int(model_labels[mi].split("_")[2])  # Third variable being Taper
     aoa_pandas[mi] = AoA_deg[i]
     ar_pandas[mi] = AR[j]
     taper_pandas[mi] = taper[k]
@@ -397,6 +413,7 @@ for mi in range(num_models):
                                                     [chord_root[k],chord_wlt_root[k]],
                                                     [chord_wlt_root[k],chord_tip[k]],
                                                     eiy,
+                                                    linear_wingWeight(w1,taper[k],Sref),
                                                     bound_panels=bound_panels),
                       simulation_dict=define_sol_112(u_inf, AoA_deg[i], rho, bound_panels))
                       #simulation_dict = define_sol_0())
