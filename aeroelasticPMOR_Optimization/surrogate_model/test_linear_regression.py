@@ -24,24 +24,26 @@ u_flutter = data_numpy[:,2]
 # Now implement a second order polynomial regression fit
 k = 2
 points_train = {
-    'x' : AR[[0,2,4,6]],
+    'x' : {'AR':AR[[0,2,4,6]]},
     'y' : u_flutter[[0,2,4,6]]
 }
 points_test = {
-    'x': AR[[1,3,5]],
+    'x': {'AR':AR[[1,3,5]]},
     'y' : u_flutter[[1,3,5]]
 }
 
 surr2 = lr.Polynomial(k,points_train,points_test)
 surr2.build()
 
-xp = np.linspace(20,44,100)
+xp = {'AR':np.linspace(20,44,100)}
 yp = surr2.eval_surrogate(xp)
+print(yp)
+print(xp)
 # Plot results
 fig = plt.figure()
 ax  = fig.add_subplot(1,1,1)
 plt.plot(AR,u_flutter,'x')
-plt.plot(xp,yp,'-b')
+plt.plot(xp['AR'],yp,'-b')
 
 ax.grid(True)
 ax.set_ylabel('U_flutter (m/s)')
