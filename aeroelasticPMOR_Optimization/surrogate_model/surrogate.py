@@ -34,7 +34,9 @@ class Surrogate:
         self.output_name = input_dict["output_name"]
         self.parameter_names = input_dict["parameter_names"]
         self.file_path = input_dict["file_path"]
-
+        if "surrogate_type" in input_dict:
+            self.surrogate_type = input_dict["surrogate_type"]
+        self.variable_num = len(self.parameter_names)
 
     def get_data(self):
         """
@@ -68,6 +70,7 @@ class Surrogate:
         self.train_dict[self.output_name] = self.data_dict[self.output_name][i_train]
         self.test_dict[self.output_name] = self.data_dict[self.output_name][i_test]
 
+
     def test_1Dcases(self,ref_val):
         """ Function to evaluate the surrogate with polynomials and RBFs to
         determine which is the best for a single parameter dependency
@@ -79,18 +82,17 @@ class Surrogate:
         # Build the surrogates
         # Polynomial surrogates on lift
         points_train = {
-            'x' : self.train_dict[self.parameter_names[0]],
+            'x' : {self.parameter_names[0]:self.train_dict[self.parameter_names[0]]},
             'y' : self.train_dict[self.output_name]
         }
         points_test  = {
-            'x':self.test_dict[self.parameter_names[0]],
+            'x':{self.parameter_names[0]:self.test_dict[self.parameter_names[0]]},
             'y':self.test_dict[self.output_name]
         }
-        x = points_train['x']
+        x = points_train['x'][self.parameter_names[0]]
         y = points_train['y']
-        x_test = points_test['x']
+        x_test = points_test['x'][self.parameter_names[0]]
         y_test = points_test['y']
-
         surr1 = lr.Polynomial(1, points_train, points_test)
         surr1.build()
         surr2 = lr.Polynomial(2, points_train, points_test)
@@ -107,10 +109,10 @@ class Surrogate:
         surr_rb_g = Rbf(x, y, function='gaussian')
         surr_rb_c = Rbf(x, y, function='cubic')
 
-        error_1 = surr1.eval_error()
-        error_2 = surr2.eval_error()
-        error_3 = surr3.eval_error()
-        error_4 = surr4.eval_error()
+        error_1 = surr1.eval_error(x_test, y_test)
+        error_2 = surr2.eval_error(x_test,y_test)
+        error_3 = surr3.eval_error(x_test,y_test)
+        error_4 = surr4.eval_error(x_test,y_test)
 
         error_l = 0
         error_m = 0
@@ -127,10 +129,10 @@ class Surrogate:
         error_g = error_g / len(x_test)
         error_c = error_c / len(x_test)
         # check errors
-        print('1st =', surr1.eval_error())
-        print('2nd =', surr2.eval_error())
-        print('3rd =', surr3.eval_error())
-        print('4th =', surr4.eval_error())
+        print('1st =', error_1)
+        print('2nd =', error_2)
+        print('3rd =', error_3)
+        print('4th =', error_4)
 
         print('linear       =', error_l)
         print('Multiquadric =', error_m)
@@ -150,14 +152,16 @@ class Surrogate:
         fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 6))
 
 
-        xp = np.linspace(x[0],x[len(x)-1],100)
+        xp = np.array([np.linspace(x[0],x[len(x)-1],100)])
+        print(xp[0,:])
+        print(len(xp))
         ax[0].plot(x, y, 'bx')
         ax[0].plot(x_test, y_test, 'ro')
-
-        ax[0].plot(xp, surr1.eval_surrogate(xp), 'k-')
-        ax[0].plot(xp, surr2.eval_surrogate(xp), 'b-')
-        ax[0].plot(xp, surr3.eval_surrogate(xp), 'r-')
-        ax[0].plot(xp, surr4.eval_surrogate(xp), 'g-')
+        print(surr1.eval_surrogate(xp))
+        ax[0].plot(xp[0,:], surr1.eval_surrogate(xp), 'k-')
+        ax[0].plot(xp[0,:], surr2.eval_surrogate(xp), 'b-')
+        ax[0].plot(xp[0,:], surr3.eval_surrogate(xp), 'r-')
+        ax[0].plot(xp[0,:], surr4.eval_surrogate(xp), 'g-')
         # ax.plot(xp,yp4,'--')
         # ax.plot(xp,ynp2,'x')
         # ax.plot(xp,ynp3,'o')
@@ -170,10 +174,10 @@ class Surrogate:
 
         ax[1].plot(x, y, 'bx')
         ax[1].plot(x_test, y_test, 'ro')
-        ax[1].plot(xp, surr_rb_l(xp), '-')
-        ax[1].plot(xp, surr_rb_m(xp), '--')
-        ax[1].plot(xp, surr_rb_g(xp), ':')
-        ax[1].plot(xp, surr_rb_c(xp), '-')
+        ax[1].plot(xp[0,:], surr_rb_l(xp[0,:]), '-')
+        ax[1].plot(xp[0,:], surr_rb_m(xp[0,:]), '--')
+        ax[1].plot(xp[0,:], surr_rb_g(xp[0,:]), ':')
+        ax[1].plot(xp[0,:], surr_rb_c(xp[0,:]), '-')
 
         ax[1].legend(
             ["Training points", "Testing points", "RB: linear", "RB: multiquadratic", "RB: Gaussian", 'RB: cubic'])
@@ -189,3 +193,48 @@ class Surrogate:
         error_data_pandas.to_csv(file_path)
 
 
+    def build(self):
+        """ Builds a surrogate model using a given method specified in the surrogate_type field
+        """
+        if self.surrogate_type is not None:
+            if self.surrogate_type == "polynomial":
+                points_train = {}
+                points_train['x'] = {key: self.train_dict[key] for key in train_dict.keys()
+                                & self.parameter_names}
+                points_train['y'] = {key: self.train_dict[key] for key in train_dict.keys()
+                                     & self.output_name}
+                points_test = {}
+                points_test['x'] = {key: self.test_dict_dict[key] for key in train_dict.keys()
+                                & self.parameter_names}
+                points_train['y'] = {key: self.test_dict[key] for key in train_dict.keys()
+                                     & self.output_name}
+
+                self.surr = lr.Polynomial(self.degree,point_train,points_test)
+
+    def eval_error(self, x_test, y_test):
+        """ Function which calculates the Root Mean Squared Error MSE
+
+        Args:
+            self                - with attributes testing_points
+            x_test (np.array)   - n x m array where n are the number of variables
+                                  and m the number of testing points.
+            y_test (np.array)   - 1 x m array of the output variable evaluated
+                                  at the x_test points
+        Returns:
+            error - RMSE error
+        """
+        [n,m] = x_test.shape
+        if self.variable_num == 1:
+            error = 0;
+            for i in range(m):
+                ys = lr.Polynomial.eval_surrogate(self, np.array([x_test[i]]))
+                error += (ys - y_test[i]) ** 2
+            error = np.sqrt(error) / len(x_test)
+            return float(error)
+        elif self.variable_num == 2:
+            error = 0;
+            for i in range(m):
+                ys = lr.Polynomial.eval_surrogate2D(self, np.array([x_test[0,i]]),np.array([x_test[1,i]]))
+                error += (ys - y_test[i]) ** 2
+            error = np.sqrt(error) / len(x_test)
+            return float(error)

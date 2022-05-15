@@ -22,6 +22,15 @@ class Polynomial:
         self.x_test = points_test['x']
         self.y_test = points_test['y']
         self.parameter_names = list(points_train['x'].keys())
+        self.train_num = len(self.x[self.parameter_names[0]])
+        self.test_num = len(self.x_test[self.parameter_names[0]])
+        self.variable_num = len(self.parameter_names)
+        x_array = np.zeros([self.variable_num,self.train_num])
+        x_test_array = np.zeros([self.variable_num,self.test_num])
+        # Pass x into an array of points
+        for i in range(self.variable_num):
+            x_array[i,:]=self.x[self.parameter_names[i]]
+            x_test_array[i,:]=self.x_test[self.parameter_names[i]]
 
     def build(self):
         """ Function to build the model
@@ -105,44 +114,48 @@ class Polynomial:
         """ Function which evaluates the surrogate function
 
         Args:
-            x (np.array): Points at which surrogate output is seeked
+            x (np.array): Points at which surrogate output is seeked nxm array where
+                         n is the number of dimensions and m the number of points to be evaluated
 
         Returns
             y (np.array): Evaluations of the surrogate
         """
-        if len(list(xp.keys())) == 1:
-            x = xp[self.parameter_names[0]]
-            f = np.zeros([len(x), ])
-            params = self.theta
-            for i in range(len(x)):
-                btest = Polynomial.polynomial_basis(self, np.array([x[i]]))
-                f[i] = np.dot(btest, params)
+        [n,m] = xp.shape
+        if n != self.variable_num:
+            print('Entered number of dimensions does not match dimensions for which surrogate is built for!')
+        else:
+            if n == 1:
+                f = np.zeros([m, ])
+                params = self.theta
+                for i in range(m):
+                    x = xp[0,:]
+                    btest = Polynomial.polynomial_basis(self, np.array([x[i]]))
+                    f[i] = np.dot(btest, params)
 
-            return f
+                return f
 
-        elif len(value_names)==2:
-            x = kwargs[value_names[0]]
-            y = kwargs[value_names[1]]
-            f = np.zeros([len(x), ])
-            params = self.theta
-            for i in range(len(x)):
-                btest = Polynomial.polynomial_basis2D(self, np.array([x[i]]),np.array([y[i]]))
-                f[i] = np.dot(btest, params)
-            return f
+            elif n==2:
+                x = xp[0,:]
+                y = xp[1,:]
+                f = np.zeros([len(x), ])
+                params = self.theta
+                for i in range(len(x)):
+                    btest = Polynomial.polynomial_basis2D(self, np.array([x[i]]),np.array([y[i]]))
+                    f[i] = np.dot(btest, params)
+                return f
 
-    def eval_error(self):
+    def eval_error(self,x_test,y_test):
         """ Function which calculates the Mean Squared Error MSE
-
+            This function will not be used to evaluate surrogate errors but is kept for compatibility
         Args:
             self - with attributes testing_points
         Returns:
             error - MSE error
         """
-        x_test = self.x_test
-        y_test= self.y_test
+
         error = 0;
         for i in range(len(x_test)):
-            ys = Polynomial.eval_surrogate(self,np.array([x_test[i]]))
+            ys = Polynomial.eval_surrogate(self,np.array([[x_test[i],]]))
             error += (ys - y_test[i]) ** 2
         error = error / len(x_test)
         return float(error)
