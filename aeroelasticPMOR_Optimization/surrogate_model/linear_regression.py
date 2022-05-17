@@ -10,6 +10,7 @@ regression problem, for now will be using polynomial basis and radial basis func
 """
 
 import numpy as np
+import pandas as pd
 
 class Polynomial:
     """Implementation of the linear-regression problem with polynomial basis
@@ -49,6 +50,14 @@ class Polynomial:
             y = self.x[self.parameter_names[1]]
             self.b = Polynomial.polynomial_basis2D(self, x,y)
             self.theta = Polynomial.eval_parameter(self, self.b)
+
+        elif len(self.parameter_names)==3:
+            x = self.x[self.parameter_names[0]]
+            y = self.x[self.parameter_names[1]]
+            z = self.x[self.parameter_names[2]]
+            self.b = Polynomial.polynomial_basis3D(self, x, y,z)
+            self.theta = Polynomial.eval_parameter(self, self.b)
+
     def polynomial_basis(self,x):
         """For every training point, evaluates the polynomial basis
         i.e b = [1 x x^2 ... x^k] where k is the order of the polynomial
@@ -99,6 +108,25 @@ class Polynomial:
                         counter += 1
         return b
 
+    def polynomial_basis3D(self,x,y,z):
+        kx = self.degree[self.parameter_names[0]]
+        ky = self.degree[self.parameter_names[1]]
+        kz = self.degree[self.parameter_names[2]]
+        num = x.size
+        num2 = y.size
+        if num != num2:
+            print('Vectors x and y must be the same size')
+        else:
+            b = np.zeros([num, (kx + 1) * (ky + 1) * (kz+1)])
+            for m in range(num):
+                counter = 0
+                for i in range(kx + 1):
+                    for j in range(ky + 1):
+                        for k in range(kz+1):
+                            b[m, counter] = x[m] ** (i) * y[m] ** (j)*z[m]**(k)
+                            counter += 1
+        return b
+
     def eval_parameter(self,b):
         """ Function evaluates a theta matrix which solves a least squares
         problem: [theta]=[B^+]{y} where [B^+] is the Moore-Penrose Pseudo Inverse
@@ -110,17 +138,28 @@ class Polynomial:
         theta = bpinv*y
         return theta
 
-    def eval_surrogate(self,xp):
+    def eval_surrogate(self,xp_input):
         """ Function which evaluates the surrogate function
 
         Args:
             x (np.array): Points at which surrogate output is seeked nxm array where
                          n is the number of dimensions and m the number of points to be evaluated
+                         could be given as a dictionary instead, in this case transform into an array
 
         Returns
             y (np.array): Evaluations of the surrogate
         """
-        [n,m] = xp.shape
+        if (type(xp_input) == dict):
+            keys = list(xp_input.keys())
+            xp = np.zeros([len(keys),len(xp_input[keys[0]])])
+            n = len(keys)
+            m = len(xp_input[keys[0]])
+            for i in range(len(keys)):
+                xp[i,:]=xp_input[keys[i]]
+        else:
+            xp = xp_input
+            [n, m] = xp.shape
+
         if n != self.variable_num:
             print('Entered number of dimensions does not match dimensions for which surrogate is built for!')
         else:
@@ -143,6 +182,17 @@ class Polynomial:
                     btest = Polynomial.polynomial_basis2D(self, np.array([x[i]]),np.array([y[i]]))
                     f[i] = np.dot(btest, params)
                 return f
+            elif n ==3:
+                x = xp[0, :]
+                y = xp[1, :]
+                z = xp[2, :]
+                f = np.zeros([len(x), ])
+                params = self.theta
+                for i in range(len(x)):
+                    btest = Polynomial.polynomial_basis3D(self, np.array([x[i]]), np.array([y[i]]),np.array([z[i]]))
+                    f[i] = np.dot(btest, params)
+                return f
+
 
     def eval_error(self,x_test,y_test):
         """ Function which calculates the Mean Squared Error MSE
@@ -159,5 +209,51 @@ class Polynomial:
             error += (ys - y_test[i]) ** 2
         error = error / len(x_test)
         return float(error)
+
+    def save_parameters(self, filepath):
+        """ Function to save the parameters of a nD surrogate
+
+        Args:
+            kx        (int): Degree polynomial in variable x
+            ky        (int): Degree polynomial in varibale y
+            theta(np.array): Array with coefficients to evaluate surrogate
+            filename  (str): String with name of file to save parameters to
+        Returns:
+
+        """
+        if self.variable_num == 2:
+            kx = self.degree[self.parameter_names[0]]
+            ky = self.degree[self.parameter_names[1]]
+            b = np.zeros([(kx + 1) * (ky + 1), ], dtype=object)
+            w = np.zeros([(kx + 1) * (ky + 1), ])
+            counter = 0
+            for i in range(kx + 1):
+                for j in range(ky + 1):
+                    b[counter] = str('x^' + str(i) + '*' + 'y^' + str(j))
+                    w[counter] = self.theta[counter]
+                    counter += 1
+        elif self.variable_num == 3:
+            kx = self.degree[self.parameter_names[0]]
+            ky = self.degree[self.parameter_names[1]]
+            kz = self.degree[self.parameter_names[2]]
+            b = np.zeros([(kx+1)*(ky+1)*(kz+1), ], dtype=object)
+            w = np.zeros([(kx+1)*(ky+1)*(kz+1), ])
+            counter = 0
+            for i in range(kx+1):
+                for j in range(ky+1):
+                    for k in range(kz+1):
+                        b[counter] = str('x^' + str(i) + '*y^' + str(j)+'*z^'+str(k))
+                        w[counter] = self.theta[counter]
+                        counter += 1
+
+
+        # Save the basis and the corresponding parameters (theta) in a csv file using pandas
+        data = {
+            "basis": b,
+            "theta": w
+        }
+        data_pandas = pd.DataFrame(data)
+        data_pandas.to_csv(filepath)
+        return b
 
 

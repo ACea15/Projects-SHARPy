@@ -58,13 +58,28 @@ yp4 = AR[28]*np.ones(xp.shape)
 yp5 = AR[35]*np.ones(xp.shape)
 yp6 = AR[42]*np.ones(xp.shape)
 
-xp0 = {'aoa_deg':xp,'ar':yp0}
-xp1 = {'aoa_deg':xp,'ar':yp1}
-xp2 = {'aoa_deg':xp,'ar':yp2}
-xp3 = {'aoa_deg':xp,'ar':yp3}
-xp4 = {'aoa_deg':xp,'ar':yp4}
-xp5 = {'aoa_deg':xp,'ar':yp5}
-xp6 = {'aoa_deg':xp,'ar':yp6}
+xp0 = np.zeros([2,len(xp)])
+xp0[0,:] = xp
+xp0[1,:] = yp0
+xp1 = np.zeros([2,len(xp)])
+xp1[0,:] = xp
+xp1[1,:] = yp1
+xp2 = np.zeros([2,len(xp)])
+xp2[0,:] = xp
+xp2[1,:] = yp2
+xp3 = np.zeros([2,len(xp)])
+xp3[0,:] = xp
+xp3[1,:] = yp3
+xp4 = np.zeros([2,len(xp)])
+xp4[0,:] = xp
+xp4[1,:] = yp4
+xp5 = np.zeros([2,len(xp)])
+xp5[0,:] = xp
+xp5[1,:] = yp5
+xp6 = np.zeros([2,len(xp)])
+xp6[0,:] = xp
+xp6[1,:] = yp6
+
 
 fig, ax = plt.subplots()
 ax.plot(xp,liftsurr.eval_surrogate(xp0),'b-')
