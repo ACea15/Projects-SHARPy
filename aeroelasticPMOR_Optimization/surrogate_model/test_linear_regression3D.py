@@ -120,3 +120,4 @@ plt.show()
 filename = 'lift3D_test.csv'
 filepath = cwd+'/surrogate_built/'+filename
 liftsurr.save_parameters(filepath)
+

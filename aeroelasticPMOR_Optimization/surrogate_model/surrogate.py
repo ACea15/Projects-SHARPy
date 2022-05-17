@@ -36,6 +36,8 @@ class Surrogate:
         self.file_path = input_dict["file_path"]
         if "surrogate_type" in input_dict:
             self.surrogate_type = input_dict["surrogate_type"]
+        if "degree" in input_dict:
+            self.degree = input_dict["degree"]
         self.variable_num = len(self.parameter_names)
 
     def get_data(self):
@@ -69,8 +71,37 @@ class Surrogate:
         # Append output
         self.train_dict[self.output_name] = self.data_dict[self.output_name][i_train]
         self.test_dict[self.output_name] = self.data_dict[self.output_name][i_test]
+    def plot_doe(self):
+        """ Function to plot the design of experiments for 2D and
+        3D """
+        if self.variable_num == 2:
+            fig, ax = plt.subplots()
 
+            ax.plot(self.train_dict[self.parameter_names[0]],
+                    self.train_dict[self.parameter_names[1]], 'bx')
+            ax.plot(self.test_dict[self.parameter_names[0]],
+                    self.test_dict[self.parameter_names[1]], 'ro')
 
+            ax.legend(["Training points", "Testing points"])
+            ax.grid(True)
+            ax.set_ylabel(self.parameter_names[0])
+            ax.set_xlabel(self.parameter_names[1])
+        if self.variable_num == 3:
+            fig = plt.figure()
+            ax = plt.axes(projection='3d')
+            ax.scatter3D(self.train_dict[self.parameter_names[0]],
+                         self.train_dict[self.parameter_names[1]],
+                         self.train_dict[self.parameter_names[2]],
+                         marker='x', c='b', s=20)
+            ax.scatter3D(self.test_dict[self.parameter_names[0]],
+                         self.test_dict[self.parameter_names[1]],
+                         self.test_dict[self.parameter_names[2]],
+                         marker='o', c='r', s=20)
+            ax.set_xlabel(self.parameter_names[0])
+            ax.set_ylabel(self.parameter_names[1])
+            ax.set_zlabel(self.parameter_names[2])
+
+            plt.show()
     def test_1Dcases(self,ref_val):
         """ Function to evaluate the surrogate with polynomials and RBFs to
         determine which is the best for a single parameter dependency
@@ -199,17 +230,19 @@ class Surrogate:
         if self.surrogate_type is not None:
             if self.surrogate_type == "polynomial":
                 points_train = {}
-                points_train['x'] = {key: self.train_dict[key] for key in train_dict.keys()
-                                & self.parameter_names}
-                points_train['y'] = {key: self.train_dict[key] for key in train_dict.keys()
-                                     & self.output_name}
                 points_test = {}
-                points_test['x'] = {key: self.test_dict_dict[key] for key in train_dict.keys()
-                                & self.parameter_names}
-                points_train['y'] = {key: self.test_dict[key] for key in train_dict.keys()
-                                     & self.output_name}
+                points_test['x']={}
+                points_train['x']={}
+                for key in self.parameter_names:
+                    points_train['x'][key] =self.train_dict[key]
+                    points_test['x'][key] =self.test_dict[key]
 
-                self.surr = lr.Polynomial(self.degree,point_train,points_test)
+                points_train['y'] = self.train_dict[self.output_name]
+                points_test['y'] = self.test_dict[self.output_name]
+
+                self.surr = lr.Polynomial(self.degree,points_train,points_test)
+                # Build the linear regression module
+                self.surr.build()
 
     def eval_error(self, x_test, y_test):
         """ Function which calculates the Root Mean Squared Error MSE
@@ -235,6 +268,13 @@ class Surrogate:
             error = 0;
             for i in range(m):
                 ys = lr.Polynomial.eval_surrogate2D(self, np.array([x_test[0,i]]),np.array([x_test[1,i]]))
+                error += (ys - y_test[i]) ** 2
+            error = np.sqrt(error) / len(x_test)
+            return float(error)
+        elif self.variable_num == 3:
+            error = 0;
+            for i in range(m):
+                ys = lr.Polynomial.eval_surrogate3D(self, x_test[:,i])
                 error += (ys - y_test[i]) ** 2
             error = np.sqrt(error) / len(x_test)
             return float(error)
