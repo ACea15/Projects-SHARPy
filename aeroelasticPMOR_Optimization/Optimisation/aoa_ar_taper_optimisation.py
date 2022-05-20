@@ -160,6 +160,8 @@ ax.set_zlabel('drag')
 # show plot
 plt.show()
 print(ar[min_drag_i[0],min_drag_i[1]])
+print(taper[min_drag_i[0],min_drag_i[1]])
+print(aoa_deg[min_drag_i[0],min_drag_i[1]])
 
 # aoa_deg_values = np.linspace(0,3.6,7)
 # xp = np.linspace(0,3.6,100)
