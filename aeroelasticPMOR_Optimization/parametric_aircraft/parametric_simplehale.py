@@ -94,6 +94,16 @@ def comp_settings(components=['fuselage','wing_r','winglet_r',
     lumped_mass[0] = 50
     lumped_mass_inertia = np.zeros((n_lumped_mass, 3, 3))  # 3x3 inertia to the previous masses
     lumped_mass_position = np.zeros((n_lumped_mass, 3))  # Relative position to the belonging node in B FoR
+    # n_lumped_mass = 2  # Number of lumped masses
+    # lumped_mass_nodes = np.zeros((n_lumped_mass,), dtype=int)  # Maps lumped mass to nodes
+    # lumped_mass_nodes[0] = 24
+    # lumped_mass_nodes[1] = 24
+    # lumped_mass = np.zeros((n_lumped_mass,))  # Array of lumped masses in kg
+    # lumped_mass[0] = 50
+    # lumped_mass[1] = 1
+    # lumped_mass_inertia = np.zeros((n_lumped_mass, 3, 3))  # 3x3 inertia to the previous masses
+    # lumped_mass_position = np.zeros((n_lumped_mass, 3))  # Relative position to the belonging node in B FoR
+    # lumped_mass_position[0] = [10,5,20]
 
     ##############
     # Components #
@@ -243,7 +253,7 @@ sol_0 = {'sharpy': {'simulation_input': None,
 #############################################
 # Modal solution                            # 
 #############################################
-u_inf = 20
+u_inf = 10
 rho = 1.2
 c_ref = 1.0
 AoA = 0.*np.pi/180
