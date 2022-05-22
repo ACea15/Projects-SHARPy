@@ -120,8 +120,8 @@ class Surrogate:
             'x':{self.parameter_names[0]:self.test_dict[self.parameter_names[0]]},
             'y':self.test_dict[self.output_name]
         }
-        x = points_train['x'][self.parameter_names[0]]
-        y = points_train['y']
+        x = list(points_train['x'][self.parameter_names[0]])
+        y = list(points_train['y'])
         x_test = points_test['x'][self.parameter_names[0]]
         y_test = points_test['y']
         surr1 = lr.Polynomial(1, points_train, points_test)
