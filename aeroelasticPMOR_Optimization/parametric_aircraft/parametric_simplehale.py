@@ -23,8 +23,8 @@ def comp_settings(components=['fuselage','wing_r','winglet_r',
 
     
     # aeroelasticity parameters
-    main_ea = 0.3  # Wing elastic axis from LE as %
-    main_cg = 0.3  # Not sure about this input
+    main_ea = 0.4  # Wing elastic axis from LE as %
+    main_cg = 0.25  # Not sure about this input
     sigma = 1.5
     c_ref = 1.0
 
@@ -292,7 +292,7 @@ sol_132 = {'sharpy': {'simulation_input': None,
 u_inf = 10
 rho = 1.2
 c_ref = 1.0
-AoA = 2*np.pi/180
+AoA = 0*np.pi/180
 bound_panels = 8
 sol_112 = {
     'sharpy': {'simulation_input': None,
@@ -336,7 +336,7 @@ sol_152 = {'sharpy': {'simulation_input': None,
                'default_module': 'sharpy.routines.flutter',
                'default_solution': 'sol_152',
                'default_solution_vars': {
-                   'flutter_reference': 21.,
+                   'flutter_reference': 20.,
                    'root_method':'bisection',
                    'velocity_increment': 10.,
                    'flutter_error': 0.001,
@@ -344,7 +344,7 @@ sol_152 = {'sharpy': {'simulation_input': None,
                    'inout_coordinates': 'modes',
                    'secant_max_calls':15,
                    'rho': rho,
-                   'gravity_on': False,
+                   'gravity_on': True,
                    'u_inf': u_inf,                           
                    'panels_wake': bound_panels * 10,
                    'dt': c_ref / bound_panels / u_inf,         
