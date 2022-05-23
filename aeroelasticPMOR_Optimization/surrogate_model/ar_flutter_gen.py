@@ -38,7 +38,11 @@ except:
     model_route = os.path.dirname(__file__) + '/'+foldername
 
 
-def comp_settings(wing_semispan,
+def comp_settings(wing_length,
+                  winglt_length,
+                  wing_chord,
+                  winglt_chord,
+                  eiy,
                   components=['fuselage', 'wing_r', 'winglet_r',
                               'wing_l', 'winglet_l', 'vertical_tail',
                               'horizontal_tail_right', 'horizontal_tail_left'],
@@ -319,22 +323,45 @@ def define_sol_152(u_inf,AoA_deg,rho,bound_panels):
                           'default_sharpy': {},
                           'model_route': None}}
     return sol_152
+####################FUNCTION DEFINITIONS END###################################
+# Define the constants
+Sref = 32. # m^2 measured using a simplified method without considering dihedral
+dhdrlSpanFraction = 0.25 # Ratio of each dihedral wing section to semispan
+winglt_dhdrl  = 20*np.pi/180
+#AR = np.array([32,])
+taper = np.array([1.,])
 
+u_inf = 10.
+rho = 1.225
+eiy = 2e4           # Bending stiffness
+AoA_deg = np.array([1.2,])
+bound_panels = 8
+
+# Define variables to iterate
+AR = np.linspace(20,44,7)
 # Calculate the wing semispan for different aspect ratios
 #AR = np.array((10,20,30,40))
 #AR = np.array((10,20))
 #AR = np.array((20,25,35))
 #AR  = np.array((30,))
-AR = np.linspace(10,40,7)
-winglt_length = 4.0
-winglt_dhdrl  = 20*np.pi/180
-wing_chord    = 1.0
-wing_semispan = 0.5*AR*wing_chord-winglt_length*np.cos(winglt_dhdrl)
+# Calculate variables which depend on AR
+wing_semispan = wing_span*0.5
+wing_length = wing_semispan*(1-dhdrlSpanFraction)
+winglt_length = dhdrlSpanFraction*wing_semispan
+# Calculate variables which depend on taper
+chord_root = Sref/(wing_semispan*(1+taper))
+chord_wlt_root = chord_root*(1+(taper-1)*wing_length/wing_semispan)
+chord_tip = chord_root*taper
 
-u_inf = 20.
-rho = 1.2
-AoA_deg = 0.0
-bound_panels = 8
+# Create the variables to iterate
+# This is not the general way of implementing
+iteration_dict = {
+    'iterate_vars':{'AoA': AoA_deg,
+                    'AR':AR},
+    'iterate_type': 'Full_Factorial',
+    'iterate_labels':{'label_type':'number',
+                      'print_name_var':0}
+}
 
 sol_0 = {'sharpy': {'simulation_input': None,
                     'default_module': 'sharpy.routines.basic',
@@ -349,37 +376,46 @@ sol_0 = {'sharpy': {'simulation_input': None,
                                                    'cleanup_old_solution': 'on'}},
                     'default_sharpy': {},
                     'model_route': None}}
+# Class that contains the details on the iteration
+iteration = Iterations(iteration_dict['iterate_vars'],
+                       iteration_dict['iterate_type'])
+num_models = iteration.num_combinations
+model_labels = iteration.labels(**iteration_dict['iterate_labels'])
+dict2iterate = iteration.get_combinations_dict()
 
+u_flutter = np.zeros((num_models,))
 
-u_flutter = np.zeros((len(AR),))
-# May need to look into the rotations
-####### choose components to analyse #########
-# g1 = gm.Model('sharpy', ['sharpy'],
-#               model_dict=model_settings('test_%s'%sol_i,
-#                                         ['fuselage','wing_r','winglet_r',
-#                                          'wing_l','winglet_l']),
-#               components_dict=comp_settings(['fuselage','wing_r','winglet_r',
-#                                              'wing_l','winglet_l']),
-#               simulation_dict=solutions[sol_i])
-####### ... or do full aircraft #########
-for i in range(len(AR)):
+for mi in range(num_models):
+    # Get the index number for each of the variables (using alphabetical order)
+    i = int(model_labels[mi].split("_")[0])  # First variable being AoA
+    j = int(model_labels[mi].split("_")[1])  # Second variable being AR
+    aoa_pandas[mi] = AoA_deg[i]
+    ar_pandas[mi] = AR[j]
+    # Check whether the simulation has been already ran
     # For this single built model create the files required
-    folder2write = targetpath + '/' + foldername + '_%s' % int(AR[i])
-    file2write = targetpath + '/' + foldername + '_%s' % int(AR[i]) + '/' + foldername + '_%s' % int(AR[i])
+    folder2write = targetpath + '/' + foldername + '_%s' % model_labels[mi]
+    file2write = targetpath + '/' + foldername + '_%s' % model_labels[mi]+ '/' + foldername + '_%s' % model_labels[mi]
     file2check = file2write + '/forces'
     if os.path.exists(file2check):
         print('File exists!')
         # Open the pickle file and get the wing deflection without running the code
         os.chdir(file2write)
-        infile = open(foldername + '_%s' % int(AR[i]) + '.pkl', 'rb')
+        infile = open(foldername + '_%s' % model_labels[mi] + '.pkl', 'rb')
         data = pickle.load(infile)
         infile.close()
-        # Obtain the flutter speed
-        u_flutter[i] = data.linear.dynamic_loads['flutter_results']['u_flutter'][0]
+
+        # Store the values from the data file
+        u_flutter[mi] = data.linear.dynamic_loads['flutter_results']['u_flutter'][0]
+        # Go back to the surrogate directory
+        os.chdir('/home/pablodfs/FYP/Projects-SHARPy/aeroelasticPMOR_Optimization/surrogate_model/')
     else:
         g1 = gm.Model('sharpy', ['sharpy'],
-                      model_dict=model_settings(foldername+'_%s' %int(AR[i])),
-                      components_dict=comp_settings(wing_semispan[i],
+                      model_dict=model_settings(foldername+'_%s' % model_labels[mi]),
+                      components_dict=comp_settings(wing_length[j],
+                                                    winglt_length[j],
+                                                    [chord_root[k],chord_wlt_root[k]],
+                                                    [chord_wlt_root[k],chord_tip[k]],
+                                                    eiy,
                                                     bound_panels=bound_panels),
                       simulation_dict=define_sol_152(u_inf,AoA_deg,rho,bound_panels))
                       #simulation_dict=sol_0)

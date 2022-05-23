@@ -448,7 +448,7 @@ for mi in range(num_models):
 # Export results via a pandas DataFrame
 data = {
     "label": model_labels,
-    "AoA_deg": aoa_pandas,
+    "aoa_deg": aoa_pandas,
     "ar" : ar_pandas,
     "taper":taper_pandas,
     "lift": lift,

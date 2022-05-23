@@ -218,7 +218,7 @@ class Surrogate:
 
         plt.show()
 
-    def save_1Dcases_erros(self,file_path):
+    def save_1Dcases_errors(self,file_path):
         """Save the errors generated from a 1D case"""
         error_data_pandas = pd.DataFrame(self.error1D_data)
         error_data_pandas.to_csv(file_path)

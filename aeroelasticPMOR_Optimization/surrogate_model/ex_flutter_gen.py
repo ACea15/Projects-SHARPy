@@ -46,6 +46,8 @@ def comp_settings(wing_length,
                   winglt_length,
                   wing_chord,
                   winglt_chord,
+                  eiy,
+                  m_bar_main,
                   ex,
                   components=['fuselage', 'wing_r', 'winglet_r',
                               'wing_l', 'winglet_l', 'vertical_tail',
@@ -73,9 +75,9 @@ def comp_settings(wing_length,
     ea = 1e7
     ga = 1e5
     gj = 1e4
-    eiy = 2e4
+    #eiy = 2e4
     eiz = 4e6
-    m_bar_main = 0.75
+    #m_bar_main = 0.75
     j_bar_main = 0.075
     mass_main1 = np.diag([m_bar_main, m_bar_main, m_bar_main,
                           j_bar_main, 0.5 * j_bar_main, 0.5 * j_bar_main])
@@ -261,6 +263,22 @@ def model_settings(model_name,
 
     return g1mm
 
+def define_sol_0():
+    sol_0 = {'sharpy': {'simulation_input': None,
+                        'default_module': 'sharpy.routines.basic',
+                        'default_solution': 'sol_0',
+                        'default_solution_vars': {'panels_wake': bound_panels * 5,
+                                                  'add2_flow': \
+                                                      [['AerogridLoader', 'WriteVariablesTime']],
+                                                  'WriteVariablesTime': \
+                                                      {'structure_variables':
+                                                           ['pos', 'psi'],
+                                                       'structure_nodes': list(range(20)),
+                                                       'cleanup_old_solution': 'on'}},
+                        'default_sharpy': {},
+                        'model_route': None}}
+    return sol_0
+
 def define_sol_112(u_inf,AoA_deg,rho,bound_panels):
     #############################################
     #  Aeroelastic equilibrium                  #
@@ -313,7 +331,7 @@ def define_sol_152(u_inf,AoA_deg,rho,bound_panels):
                               'inout_coordinates': 'modes',
                               'secant_max_calls': 15,
                               'rho': rho,
-                              'gravity_on': False,
+                              'gravity_on': True,
                               'u_inf': u_inf,
                               'panels_wake': bound_panels * 10,
                               'dt': c_ref / bound_panels / u_inf,
@@ -337,50 +355,68 @@ def define_sol_152(u_inf,AoA_deg,rho,bound_panels):
                           'model_route': None}}
     return sol_152
 
+def linear_wingWeight(w1, taper, Sref):
+    """Function to calculate the linear weight of the wing in kg/m
+
+    Args:
+        w1    - Constant for the wing
+        taper - taper ratio
+        Sref  - Wing Area in m^2
+
+    Returns:
+        linear_wingWeight
+    """
+    linear_wingWeight = w1 * taper ** 0.05 / (Sref) ** 0.5
+    return linear_wingWeight
+
+####################FUNCTION DEFINITIONS END###################################
+# Define the constants
+Sref = 32. #m^2
+dhdrlSpanFraction = 0.25    # Ratio of each dihedral wing section to semispan
+winglt_dhdrl  = 20*np.pi/180
+w1 = 3*(2**0.5)                 # Constant for wing weight
+eiy = 2e4
+u_inf = 10.                     # Keep the speed constant!
+rho = 1.225                     # Could be more precise at 1.225 kg/m^3
+
+bound_panels = 8
+
 # Calculate the wing semispan for different aspect ratios
 #AR = np.array((10,20,30,40))
 #AR = np.array((10,20))
 #AR = np.array((20,25,35))
 #AR  = np.array((30,))
 #AR = np.linspace(10,40,7)
-AR = 32.
-Sref = 32. #m^2
-dhdrlSpanFraction = 0.25    # Ratio of each dihedral wing section to semispan
-wing_span = np.sqrt(AR*Sref)
+aoa_deg = np.array([1.2,])
+ar = np.array([32.,])
+taper = np.array([1.0,])
+
+# Define variables to iterate
+ex = np.linspace(0.25,0.4,7)
+
+# Calculate variables which depend on AR
+wing_span = np.sqrt(ar*Sref)
 #wing_semispan = 0.5*AR*wing_chord-winglt_length*np.cos(winglt_dhdrl)
 wing_semispan = wing_span*0.5
 wing_length = wing_semispan*(1-dhdrlSpanFraction)
 winglt_length = dhdrlSpanFraction*wing_semispan
-winglt_dhdrl  = 20*np.pi/180
-chord = Sref/wing_span
-wing_chord    = [chord, chord] # To keep area constant -> will need ot have 2 chords with taper
-winglt_chord  = [chord, chord]
 
-u_inf = 10.                     # Keep the speed constant!
-rho = 1.225                     # Could be more precise at 1.225 kg/m^3
-AoA_deg = np.array([1.2,])
-bound_panels = 8
+# Calculate variables which depend on taper
+chord_root = np.zeros([len(ar),len(taper)])
+chord_wlt_root = np.zeros([len(ar),len(taper)])
+chord_tip = np.zeros([len(ar),len(taper)])
 
-# Variables to iterate
-ex = np.linspace(0.2,0.38,7)
-sol_0 = {'sharpy': {'simulation_input': None,
-                    'default_module': 'sharpy.routines.basic',
-                    'default_solution': 'sol_0',
-                    'default_solution_vars': {'panels_wake': bound_panels * 5,
-                                              'add2_flow': \
-                                                  [['AerogridLoader', 'WriteVariablesTime']],
-                                              'WriteVariablesTime': \
-                                                  {'structure_variables':
-                                                       ['pos', 'psi'],
-                                                   'structure_nodes': list(range(20)),
-                                                   'cleanup_old_solution': 'on'}},
-                    'default_sharpy': {},
-                    'model_route': None}}
+for i in range(len(ar)):
+    chord_root[i,:] = Sref/(wing_semispan[i]*(1+taper))
+    chord_wlt_root[i,:] = chord_root[i,:]*(1+(taper-1)*wing_length[i]/wing_semispan[i])
+    chord_tip[i,:] = chord_root[i,:]*taper
 
 # Create the variables to iterate
 # This is not the general way of implementing
 iteration_dict = {
-    'iterate_vars':{'AoA': AoA_deg,
+    'iterate_vars':{'aoa': aoa_deg,
+                    'ar':ar,
+                    'taper':taper,
                     'ex':ex},
     'iterate_type': 'Full_Factorial',
     'iterate_labels':{'label_type':'number',
@@ -398,6 +434,8 @@ u_flutter = np.zeros((num_models,))
 
 # Assign independent variables
 aoa_pandas = np.zeros((num_models,))
+ar_pandas = np.zeros((num_models,))
+taper_pandas = np.zeros((num_models,))
 ex_pandas = np.zeros((num_models,))
 
 # May need to look into the rotations
@@ -413,9 +451,14 @@ ex_pandas = np.zeros((num_models,))
 for mi in range(num_models):
     # Get the index number for each of the variables (using alphabetical order)
     i = int(model_labels[mi].split("_")[0])  # First variable being AoA
-    j = int(model_labels[mi].split("_")[1])  # Second variable being ex
-    aoa_pandas[mi] = AoA_deg[i]
-    ex_pandas[mi] = ex[j]
+    j = int(model_labels[mi].split("_")[1])  # Second variable being AR
+    k = int(model_labels[mi].split("_")[2])  # Third variable being Taper
+    l = int(model_labels[mi].split("_")[3])  # Third variable being ex
+    aoa_pandas[mi] = aoa_deg[i]
+    ar_pandas[mi] = ar[j]
+    taper_pandas[mi] = taper[k]
+    ex_pandas[mi] = ex[l]
+
     # For this single built model create the files required
     folder2write = targetpath + '/' + foldername + '%s' % model_labels[mi]
     file2write = targetpath + '/' + foldername + '%s' % model_labels[mi] + '/' + foldername + '%s' % model_labels[mi]
@@ -435,14 +478,16 @@ for mi in range(num_models):
         else:
             g1 = gm.Model('sharpy', ['sharpy'],
                           model_dict=model_settings(foldername+'%s' %model_labels[mi]),
-                          components_dict=comp_settings(wing_length,
-                                                        winglt_length,
-                                                        wing_chord,
-                                                        winglt_chord,
-                                                        ex[j],
+                          components_dict=comp_settings(wing_length[j],
+                                                        winglt_length[j],
+                                                        [chord_root[j, k], chord_wlt_root[j, k]],
+                                                        [chord_wlt_root[j, k], chord_tip[j, k]],
+                                                        eiy,
+                                                        linear_wingWeight(w1, taper[k], Sref),
+                                                        ex[l],
                                                         bound_panels=bound_panels),
-                          simulation_dict=define_sol_152(u_inf,AoA_deg[i],rho,bound_panels))
-                          #simulation_dict=sol_0)
+                          simulation_dict=define_sol_152(u_inf,aoa_deg[i],rho,bound_panels))
+                          #simulation_dict=define_sol_0())
             # Create the file structure inside the folder
             g1.build() # Build the model
             m = 0
@@ -463,7 +508,7 @@ for mi in range(num_models):
             data = sharpy.sharpy_main.main(['', foldername+'%s.sharpy' %model_labels[mi]])
 
             # Store the values from the data file
-            u_flutter[i] = data.linear.dynamic_loads['flutter_results']['u_flutter'][0]
+            u_flutter[mi] = data.linear.dynamic_loads['flutter_results']['u_flutter'][0]
             # Go back to the surrogate directory
             os.chdir('/home/pablodfs/FYP/Projects-SHARPy/aeroelasticPMOR_Optimization/surrogate_model/')
     else:
@@ -472,6 +517,8 @@ for mi in range(num_models):
 # Export results via a pandas DataFrame
 data = {
     "aoa_deg" : aoa_pandas,
+    "ar" : ar_pandas,
+    "taper": taper_pandas,
     "ex": ex_pandas,
     "u_flutter": u_flutter
 }
