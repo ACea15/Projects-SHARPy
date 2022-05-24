@@ -23,7 +23,7 @@ importlib.reload(gm)
 import sys
 
 # Set the folder structure in case it is already not set
-foldername = 'ex_flutter'
+foldername = 'ex_flutter_testsingle'
 dirname = os.getcwd()
 targetpath = os.path.join(dirname,foldername)
 
@@ -349,7 +349,7 @@ def define_sol_152(u_inf,AoA_deg,rho,bound_panels):
                               's_relaxation': 1e-3,
                               's_load_steps': 1,
                               's_delta_curved': 1e-4,
-                              'add2_flow': [['StaticCoupled', 'plot']],
+                              'add2_flow': [['StaticCoupled', 'plot','Pickle']],
                           },
                           'default_sharpy': {},
                           'model_route': None}}
@@ -375,11 +375,11 @@ Sref = 32. #m^2
 dhdrlSpanFraction = 0.25    # Ratio of each dihedral wing section to semispan
 winglt_dhdrl  = 20*np.pi/180
 w1 = 3*(2**0.5)                 # Constant for wing weight
-eiy = 2e4
+
 u_inf = 10.                     # Keep the speed constant!
 rho = 1.225                     # Could be more precise at 1.225 kg/m^3
 
-bound_panels = 8
+bound_panels = 4
 
 # Calculate the wing semispan for different aspect ratios
 #AR = np.array((10,20,30,40))
@@ -387,13 +387,13 @@ bound_panels = 8
 #AR = np.array((20,25,35))
 #AR  = np.array((30,))
 #AR = np.linspace(10,40,7)
-aoa_deg = np.array([1.2,])
+aoa_deg = np.array([0.,0.6,0.7,0.8,1.0])
 ar = np.array([32.,])
 taper = np.array([1.0,])
-
 # Define variables to iterate
-ex = np.linspace(0.25,0.4,7)
-
+#ex = np.linspace(0.25,0.4,7)
+ex = np.array([0.3,])
+eiy = np.array([2e4,2.5e4,3e4])
 # Calculate variables which depend on AR
 wing_span = np.sqrt(ar*Sref)
 #wing_semispan = 0.5*AR*wing_chord-winglt_length*np.cos(winglt_dhdrl)
@@ -417,7 +417,8 @@ iteration_dict = {
     'iterate_vars':{'aoa': aoa_deg,
                     'ar':ar,
                     'taper':taper,
-                    'ex':ex},
+                    'ex':ex,
+                    'eiy':eiy},
     'iterate_type': 'Full_Factorial',
     'iterate_labels':{'label_type':'number',
                       'print_name_var':0}
@@ -437,7 +438,7 @@ aoa_pandas = np.zeros((num_models,))
 ar_pandas = np.zeros((num_models,))
 taper_pandas = np.zeros((num_models,))
 ex_pandas = np.zeros((num_models,))
-
+eiy_pandas = np.zeros((num_models,))
 # May need to look into the rotations
 ####### choose components to analyse #########
 # g1 = gm.Model('sharpy', ['sharpy'],
@@ -448,22 +449,28 @@ ex_pandas = np.zeros((num_models,))
 #                                              'wing_l','winglet_l']),
 #               simulation_dict=solutions[sol_i])
 ####### ... or do full aircraft #########
+
 for mi in range(num_models):
     # Get the index number for each of the variables (using alphabetical order)
     i = int(model_labels[mi].split("_")[0])  # First variable being AoA
     j = int(model_labels[mi].split("_")[1])  # Second variable being AR
     k = int(model_labels[mi].split("_")[2])  # Third variable being Taper
-    l = int(model_labels[mi].split("_")[3])  # Third variable being ex
+    l = int(model_labels[mi].split("_")[3])  # Fourth variable being ex
+    n = int(model_labels[mi].split("_")[4])  # Fith variable being eiy (stiffness)
     aoa_pandas[mi] = aoa_deg[i]
     ar_pandas[mi] = ar[j]
     taper_pandas[mi] = taper[k]
     ex_pandas[mi] = ex[l]
+    eiy_pandas[mi] = eiy[n]
 
-    # For this single built model create the files required
-    folder2write = targetpath + '/' + foldername + '%s' % model_labels[mi]
-    file2write = targetpath + '/' + foldername + '%s' % model_labels[mi] + '/' + foldername + '%s' % model_labels[mi]
-    file2check = file2write + '/beam_modal_analysis'
-    if j<6:
+    if (i==4) and (n==2):
+        break
+    else:
+        # For this single built model create the files required
+        folder2write = targetpath + '/' + foldername + '%s' % model_labels[mi]
+        file2write = targetpath + '/' + foldername + '%s' % model_labels[mi] + '/' + foldername + '%s' % model_labels[mi]
+        file2check = file2write + '/beam_modal_analysis'
+
         if os.path.exists(file2check):
             print('File exists!')
             # Open the pickle file and get the wing deflection without running the code
@@ -482,7 +489,7 @@ for mi in range(num_models):
                                                         winglt_length[j],
                                                         [chord_root[j, k], chord_wlt_root[j, k]],
                                                         [chord_wlt_root[j, k], chord_tip[j, k]],
-                                                        eiy,
+                                                        eiy[n],
                                                         linear_wingWeight(w1, taper[k], Sref),
                                                         ex[l],
                                                         bound_panels=bound_panels),
@@ -505,14 +512,16 @@ for mi in range(num_models):
             # For some reason data is empty, have tried data[0] in notebook but does not help
             # As a fix run it manually
             os.chdir('./'+foldername+'/'+foldername+'%s' %model_labels[mi])
-            data = sharpy.sharpy_main.main(['', foldername+'%s.sharpy' %model_labels[mi]])
+            try:
+                data = sharpy.sharpy_main.main(['', foldername+'%s.sharpy' %model_labels[mi]])
 
-            # Store the values from the data file
-            u_flutter[mi] = data.linear.dynamic_loads['flutter_results']['u_flutter'][0]
+                # Store the values from the data file
+                u_flutter[mi] = data.linear.dynamic_loads['flutter_results']['u_flutter'][0]
+            except:
+                print('System is unstable, set flutter speed to zero')
+                u_flutter[mi] = 0.
             # Go back to the surrogate directory
             os.chdir('/home/pablodfs/FYP/Projects-SHARPy/aeroelasticPMOR_Optimization/surrogate_model/')
-    else:
-        break
 
 # Export results via a pandas DataFrame
 data = {
@@ -520,6 +529,7 @@ data = {
     "ar" : ar_pandas,
     "taper": taper_pandas,
     "ex": ex_pandas,
+    "eiy":eiy_pandas,
     "u_flutter": u_flutter
 }
 # Create the pandas data frame
